@@ -325,12 +325,46 @@ const transitionStatus = async (req, res, next) => {
 };
 
 // 🗑️ 5. Delete Lead Profile Pipeline
+
+    
 const deleteLead = async (req, res, next) => {
   try {
-    const lead = await Lead.findByIdAndDelete(req.params.id);
-    if (!lead) return res.status(404).json({ message: 'Lead not found' });
-    res.status(200).json({ message: 'Lead successfully extracted' });
-  } catch (error) { next(error); }
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        message: "Lead ID is required",
+      });
+    }
+
+    const deletedLead = await Lead.findByIdAndDelete(id);
+
+    if (!deletedLead) {
+      return res.status(404).json({
+        message: "Lead not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Lead deleted successfully",
+      id: deletedLead._id,
+    });
+  } catch (error) {
+    console.error("DELETE LEAD ERROR:", error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        message: "Invalid lead ID",
+      });
+    }
+
+    return res.status(500).json({
+      message: "Failed to delete lead",
+    });
+  }
 };
+
+
+
 
 module.exports = { getLeads, createLead, updatedLead, transitionStatus, deleteLead };

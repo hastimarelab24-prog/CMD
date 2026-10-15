@@ -54,7 +54,12 @@ const API_URL = 'http://localhost:5000/api/leads';
 export const leadService = {
   fetchLeads: async (filters) => {
     // 💡 Fetching the active session token saved by AuthContext during login
-    const token = localStorage.getItem('token');
+const token = localStorage.getItem('token');
+
+if (!token) {
+  throw new Error('Please login again.');
+}
+
     
     const config = {
       headers: {
@@ -89,10 +94,20 @@ export const leadService = {
     return response.data;
   },
 
-  deleteLead: async (id) => {
-    const token = localStorage.getItem('token');
-    const config = { headers: { 'Authorization': `Bearer ${token}` } };
-    const response = await axios.delete(`${API_URL}/${id}`, config);
-    return response.data;
-  }
+
+deleteLead: async (id) => {
+  const token = localStorage.getItem('token');
+
+  const response = await axios.delete(
+    `${API_URL}/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+}
+
 };

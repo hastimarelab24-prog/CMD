@@ -40,13 +40,24 @@ export default function Leads() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Permanently wipe this lead record?")) return;
-    try {
-      await leadService.deleteLead(id);
-      loadLeads();
-    } catch (err) { console.error(err); }
-  };
+ 
+const handleDelete = async (id) => {
+  if (!window.confirm("Permanently wipe this lead record?")) {
+    return;
+  }
+
+  try {
+    await leadService.deleteLead(id);
+    await loadLeads(); // તમારા હાલના refresh function નું નામ
+  } catch (error) {
+    console.error("Delete error:", error);
+    alert(
+      error.response?.data?.message ||
+      "Lead delete failed. Please try again."
+    );
+  }
+};
+
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
