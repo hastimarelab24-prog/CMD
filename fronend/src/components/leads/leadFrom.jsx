@@ -70,9 +70,8 @@
 //     </div>
 //   )
 // }
-
-
 import React, { useEffect, useState } from "react";
+import { apiRequest } from "../../api/api";
 
 const SOURCES = [
   "website",
@@ -107,13 +106,71 @@ export default function LeadForm({
   onSubmit,
   onClose,
 }) {
-  const [formData, setFormData] = useState(INITIAL_FORM);
+  const [formData, setFormData] = useState({ ...INITIAL_FORM });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [employees, setEmployees] = useState([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
 
+  // Load active employees
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchEmployees = async () => {
+      try {
+        setLoadingEmployees(true);
+
+        // apiRequest signature: (method, endpoint, data)
+        const data = await apiRequest("get", "/users");
+
+        const users = Array.isArray(data)
+          ? data
+          : data?.users || data?.data || [];
+
+        const employeeList = users.filter(
+          (user) =>
+            user.role?.toLowerCase() === "employee" &&
+            user.isActive !== false
+        );
+
+        if (!cancelled) {
+          setEmployees(employeeList);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to load employees:",
+          error.response?.data || error.message
+        );
+
+        if (!cancelled) {
+          setSubmitError(
+            error.response?.data?.message ||
+              "Could not load employees. Check your login and permissions."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingEmployees(false);
+        }
+      }
+    };
+
+    fetchEmployees();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Load initial data when editing
   useEffect(() => {
     if (initialData) {
+      const assignedEmployee =
+        typeof initialData.assignedEmployee === "object"
+          ? initialData.assignedEmployee?._id || ""
+          : initialData.assignedEmployee || "";
+
       setFormData({
         name: initialData.name || "",
         company: initialData.company || "",
@@ -121,7 +178,7 @@ export default function LeadForm({
         phone: initialData.phone || "",
         source: initialData.source || "",
         status: initialData.status || "new",
-        assignedEmployee: initialData.assignedEmployee || "",
+        assignedEmployee,
       });
     } else {
       setFormData({ ...INITIAL_FORM });
@@ -163,16 +220,15 @@ export default function LeadForm({
     }
 
     if (!SOURCES.includes(formData.source)) {
-      nextErrors.source = "Please select a valid lead source.";
+      nextErrors.source = "Please select a lead source.";
     }
 
     if (!STATUSES.includes(formData.status)) {
-      nextErrors.status = "Please select a valid lead status.";
+      nextErrors.status = "Please select a lead status.";
     }
 
-    if (formData.assignedEmployee.trim().length < 2) {
-      nextErrors.assignedEmployee =
-        "Employee name must be at least 2 characters.";
+    if (!formData.assignedEmployee) {
+      nextErrors.assignedEmployee = "Please select an employee.";
     }
 
     return nextErrors;
@@ -200,14 +256,15 @@ export default function LeadForm({
       phone: formData.phone.trim(),
       source: formData.source,
       status: formData.status,
-      assignedEmployee: formData.assignedEmployee.trim(),
+      // Send the selected employee's MongoDB ID
+      assignedEmployee: formData.assignedEmployee,
     };
 
     try {
       setSaving(true);
 
       if (typeof onSubmit !== "function") {
-        throw new Error("Lead submit handler is missing in the parent component.");
+        throw new Error("Lead submit handler is missing.");
       }
 
       await onSubmit(payload);
@@ -217,23 +274,8 @@ export default function LeadForm({
         error.response?.data || error
       );
 
-      const responseData = error.response?.data;
-      const responseErrors = responseData?.errors;
-
-      if (Array.isArray(responseErrors)) {
-        const mappedErrors = {};
-
-        responseErrors.forEach((item) => {
-          if (item.field) {
-            mappedErrors[item.field] = item.message;
-          }
-        });
-
-        setErrors(mappedErrors);
-      }
-
       setSubmitError(
-        responseData?.message ||
+        error.response?.data?.message ||
           error.message ||
           "Unable to save lead. Please try again."
       );
@@ -242,34 +284,15 @@ export default function LeadForm({
     }
   };
 
-  const inputStyle = {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "10px 12px",
-    border: "1px solid #d1d5db",
-    borderRadius: "6px",
-    fontSize: "14px",
-    outline: "none",
-  };
+  const inputClass =
+    "w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100";
 
-  const labelStyle = {
-    display: "block",
-    fontWeight: 600,
-    fontSize: "14px",
-    marginBottom: "6px",
-    color: "#374151",
-  };
+  const labelClass =
+    "mb-1.5 block text-sm font-semibold text-gray-700";
 
   const renderError = (field) =>
     errors[field] ? (
-      <p
-        role="alert"
-        style={{
-          color: "#dc2626",
-          fontSize: "12px",
-          marginTop: "5px",
-        }}
-      >
+      <p className="mt-1 text-xs text-red-600" role="alert">
         {errors[field]}
       </p>
     ) : null;
@@ -278,67 +301,60 @@ export default function LeadForm({
     <form
       onSubmit={handleSubmit}
       noValidate
-      style={{
-        padding: "20px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-        fontFamily: "Arial, sans-serif",
-      }}
+      className="flex flex-col gap-5 rounded-xl bg-white p-5 sm:p-7"
     >
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">
+          {initialData ? "Update Lead" : "Register New Lead"}
+        </h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Enter lead details and select an employee.
+        </p>
+      </div>
+
       {submitError && (
         <div
           role="alert"
-          style={{
-            padding: "12px",
-            borderRadius: "6px",
-            background: "#fef2f2",
-            color: "#b91c1c",
-            border: "1px solid #fecaca",
-            fontSize: "14px",
-          }}
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {submitError}
         </div>
       )}
 
       <div>
-        <label htmlFor="name" style={labelStyle}>
+        <label htmlFor="name" className={labelClass}>
           Full Name *
         </label>
         <input
           id="name"
           name="name"
-          type="text"
           value={formData.name}
           onChange={handleChange}
           placeholder="Enter full name"
           required
           minLength={2}
-          style={inputStyle}
+          className={inputClass}
           aria-invalid={Boolean(errors.name)}
         />
         {renderError("name")}
       </div>
 
       <div>
-        <label htmlFor="company" style={labelStyle}>
+        <label htmlFor="company" className={labelClass}>
           Company
         </label>
         <input
           id="company"
           name="company"
-          type="text"
           value={formData.company}
           onChange={handleChange}
           placeholder="Enter company name"
-          style={inputStyle}
+          className={inputClass}
         />
-        {renderError("company")}
       </div>
 
       <div>
-        <label htmlFor="email" style={labelStyle}>
+        <label htmlFor="email" className={labelClass}>
           Email Address *
         </label>
         <input
@@ -349,14 +365,14 @@ export default function LeadForm({
           onChange={handleChange}
           placeholder="name@example.com"
           required
-          style={inputStyle}
+          className={inputClass}
           aria-invalid={Boolean(errors.email)}
         />
         {renderError("email")}
       </div>
 
       <div>
-        <label htmlFor="phone" style={labelStyle}>
+        <label htmlFor="phone" className={labelClass}>
           Phone Number
         </label>
         <input
@@ -366,13 +382,12 @@ export default function LeadForm({
           value={formData.phone}
           onChange={handleChange}
           placeholder="Enter phone number"
-          style={inputStyle}
+          className={inputClass}
         />
-        {renderError("phone")}
       </div>
 
       <div>
-        <label htmlFor="source" style={labelStyle}>
+        <label htmlFor="source" className={labelClass}>
           Lead Source *
         </label>
         <select
@@ -381,7 +396,7 @@ export default function LeadForm({
           value={formData.source}
           onChange={handleChange}
           required
-          style={inputStyle}
+          className={inputClass}
           aria-invalid={Boolean(errors.source)}
         >
           <option value="">Select lead source</option>
@@ -395,7 +410,7 @@ export default function LeadForm({
       </div>
 
       <div>
-        <label htmlFor="status" style={labelStyle}>
+        <label htmlFor="status" className={labelClass}>
           Lead Status *
         </label>
         <select
@@ -404,7 +419,7 @@ export default function LeadForm({
           value={formData.status}
           onChange={handleChange}
           required
-          style={inputStyle}
+          className={inputClass}
           aria-invalid={Boolean(errors.status)}
         >
           {STATUSES.map((status) => (
@@ -417,60 +432,53 @@ export default function LeadForm({
       </div>
 
       <div>
-        <label htmlFor="assignedEmployee" style={labelStyle}>
+        <label htmlFor="assignedEmployee" className={labelClass}>
           Assigned Employee *
         </label>
-        <input
+        <select
           id="assignedEmployee"
           name="assignedEmployee"
-          type="text"
           value={formData.assignedEmployee}
           onChange={handleChange}
-          placeholder="Enter employee name"
           required
-          minLength={2}
-          style={inputStyle}
+          disabled={loadingEmployees}
+          className={inputClass}
           aria-invalid={Boolean(errors.assignedEmployee)}
-        />
+        >
+          <option value="">
+            {loadingEmployees
+              ? "Loading employees..."
+              : employees.length
+                ? "Select Employee"
+                : "No active employees found"}
+          </option>
+
+          {employees.map((employee) => (
+            <option
+              key={employee._id || employee.id}
+              value={employee._id || employee.id}
+            >
+              {employee.name} ({employee.email})
+            </option>
+          ))}
+        </select>
         {renderError("assignedEmployee")}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "10px",
-          marginTop: "8px",
-        }}
-      >
+      <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
         <button
           type="button"
           onClick={onClose}
           disabled={saving}
-          style={{
-            padding: "10px 16px",
-            background: "#e5e7eb",
-            color: "#111827",
-            border: "none",
-            borderRadius: "6px",
-            cursor: saving ? "not-allowed" : "pointer",
-          }}
+          className="rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-200 disabled:opacity-50"
         >
           Cancel
         </button>
 
         <button
           type="submit"
-          disabled={saving}
-          style={{
-            padding: "10px 18px",
-            background: saving ? "#86efac" : "#16a34a",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "6px",
-            cursor: saving ? "not-allowed" : "pointer",
-            fontWeight: 600,
-          }}
+          disabled={saving || loadingEmployees}
+          className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving
             ? "Saving..."

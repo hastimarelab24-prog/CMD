@@ -43,26 +43,29 @@ api.interceptors.request.use(
 
 // Reusable API request function
 
-export const apiRequest = async (method, endpoint, data = null) => {
-  try {
-    const response = await api({
-      method,
-      url: endpoint,
-      ...(data !== null ? { data } : {}),
-    });
+const API_URL = "http://localhost:5000/api";
 
-    return response.data;
-  } catch (error) {
-    console.error("API request failed:", {
-      status: error.response?.status,
-      response: error.response?.data,
-      message: error.message,
-    });
+export const apiRequest = async (endpoint, method = "GET", body = null) => {
+  const token = localStorage.getItem("token");
 
-    // Keep the original Axios error and its response details
-    throw error;
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body !== null ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || `Request failed: ${response.status}`);
   }
+
+  return data;
 };
+
 
 
 export default api;

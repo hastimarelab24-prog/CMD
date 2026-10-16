@@ -1,63 +1,23 @@
+await lead.save();
 
-// import { useState } from "react";
-// import { apiRequest } from "../api";
+console.log("Lead saved successfully:", lead._id.toString());
 
-// const roles = ["administrator", "manager", "employee"];
+try {
+  await logActive(
+    req.user.id || req.user._id,
+    "LEAD_ASSIGNED",
+    "Lead",
+    lead._id.toString(),
+    {
+      previousEmployee,
+      newEmployee: employee._id.toString(),
+    }
+  );
+} catch (auditError) {
+  console.error("Audit log error:", auditError);
+}
 
-// const RoleSelector = ({ user, onUpdated }) => {
-//   const [role, setRole] = useState(user.role);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState("");
-
-//   const updateRole = async () => {
-//     if (role === user.role) return;
-
-//     try {
-//       setLoading(true);
-//       setError("");
-
-//       await apiRequest(`/users/${user._id || user.id}/role`, {
-//         method: "PATCH",
-//         body: JSON.stringify({ role }),
-//       });
-
-//       await onUpdated();
-//     } catch (err) {
-//       setError(err.message);
-//       setRole(user.role);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <div>
-//       <div className="d-flex gap-2">
-//         <select
-//           className="form-select form-select-sm"
-//           value={role}
-//           onChange={(e) => setRole(e.target.value)}
-//           disabled={loading}
-//         >
-//           {roles.map((item) => (
-//             <option key={item} value={item}>
-//               {item}
-//             </option>
-//           ))}
-//         </select>
-
-//         <button
-//           className="btn btn-sm btn-success"
-//           onClick={updateRole}
-//           disabled={loading || role === user.role}
-//         >
-//           {loading ? "Saving..." : "Save"}
-//         </button>
-//       </div>
-
-//       {error && <small className="text-danger">{error}</small>}
-//     </div>
-//   );
-// };
-
-// export default RoleSelector;
+return res.status(200).json({
+  message: "Lead assigned successfully.",
+  lead,
+});
