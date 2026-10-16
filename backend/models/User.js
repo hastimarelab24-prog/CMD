@@ -22,31 +22,60 @@
 // }
 
 // module.exports = mongoose.model('User',UserSchema)
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
-const UserSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
-}, { timestamps: true });
 
-// 🔒 FIXED: Removed the 'next' parameter callback from the async hook block
-UserSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    // 💡 With async/await pre-save hooks, returning completes the middleware cycle automatically!
-  } catch (err) {
-    throw err; // Throws the error up directly into your centralized catch block safely
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+
+    password: {
+      type: String,
+      required: true,
+      select: false,
+    },
+
+    role: {
+      type: String,
+      enum: ["administrator", "manager", "employee"],
+      default: "employee",
+      required: true,
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
   }
+);
+
+// Hash password once when it is created or changed.
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Structural helper method to decode and verify passwords during a sessional login request
-UserSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+userSchema.methods.comparePassword = async function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model("User", userSchema);

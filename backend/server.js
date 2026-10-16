@@ -13,21 +13,22 @@ const connectDB = require('./config/db')
 const app = express();
   connectDB()
 
-// 💡 CRITICAL FIX: These body parsers MUST be declared before any route handles requests!
+//  CRITICAL FIX: These body parsers MUST be declared before any route handles requests!
 app.use(cors());
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/leads',require('./routes/leadRoutes'));
 app.use('/api/auth',require('./routes/authRoutes'))
-// 🌐 Debug Testing Route
+app.use('/api/users', require('./routes/userRoutes'));
+//  Debug Testing Route
 app.get('/test', (req, res) => {
   res.send('Backend Server is live and fully accessible!');
 });
 
 
 
-// 📝 Registration API 
+//  Registration API 
 app.post('/api/auth/register',validateRegistration, async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
@@ -110,8 +111,20 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server up and running cleanly on port ${PORT}...`));
+const startServer = async () => {
+  try {
+    await connectDB();
 
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Database connection failed:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 
 
