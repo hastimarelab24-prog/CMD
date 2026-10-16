@@ -8,13 +8,19 @@ const logAction = async (
   entityId,
   details = {}
 ) => {
-  return AuditLog.create({
+  try{
+ return AuditLog.create({
     user: userId,
     action,
     entity,
     entityId,
     details,
   });
+  }catch(err){
+    console.error("auditilog creation failed",err);
+    throw err;
+  }
+ 
 };
 
 module.exports = logAction;
