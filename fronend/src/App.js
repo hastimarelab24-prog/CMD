@@ -40,21 +40,40 @@ import Register from './Pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './Pages/Dashboard';
 import Leads from './Pages/Leads';
-
+import Team from './Pages/Team';
+import AssignLead from './Pages/AssignLead';
+import AuditLogs from './Pages/AuditLogs';
+import CreateUser from './Pages/CreateUser';
 function App() {
   return (
     <div>
       <AuthProvider>
         {/* <BrowserRouter> */}
-          <Routes>
-            <Route path='/login' element={<Login/>}/>
-            <Route path='/register' element={<Register/>}/>
+        
+      <Routes>
+        <Route path="/login" element={<Login />} />
 
-            <Route element={<ProtectedRoute/>}/>
-            <Route path='/dashboard' element={<Dashboard/>}/>
-            <Route path='/leads' element={<Leads/>}/>
-            <Route  path='*' element={<Navigate to="/login" replace/>}/>
-          </Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+
+          <Route element={
+            <ProtectedRoute allowedRoles={["administrator"]} />
+          }>
+            <Route path="/team" element={<Team />} />
+            <Route path="/team/create" element={<CreateUser />} />
+            <Route path="/audit-logs" element={<AuditLogs />} />
+          </Route>
+
+          <Route element={
+            <ProtectedRoute allowedRoles={["administrator", "manager"]} />
+          }>
+            <Route path="/assign-lead" element={<AssignLead />} />
+          </Route>
+        </Route>
+
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+  
         {/* </BrowserRouter> */}
       </AuthProvider>
     </div>

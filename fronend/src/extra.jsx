@@ -1,118 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { leadService } from '../services/leadService';
-import LeadTable from '../components/leads/LeadTable';
-import LeadModal from '../components/leads/LeadModal';
-import LeadForm from '../components/leads/LeadForm';
-import Pagination from '../common/Pagination';
 
-export default function Leads() {
-  const [leads, setLeads] = useState([]);
-  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
-  const [filters, setFilters] = useState({ search: '', status: '', sortBy: 'createdAt', sortOrder: 'desc', page: 1 });
-  const [modal, setModal] = useState({ isOpen: false, data: null });
+// import { useState } from "react";
+// import { apiRequest } from "../api";
 
-  const loadLeads = async () => {
-    try {
-      const data = await leadService.fetchLeads(filters);
-      setLeads(data.leads);
-      setPagination(data.pagination);
-    } catch (err) { console.error(err); }
-  };
+// const roles = ["administrator", "manager", "employee"];
 
-  useEffect(() => { loadLeads(); }, [filters]);
+// const RoleSelector = ({ user, onUpdated }) => {
+//   const [role, setRole] = useState(user.role);
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState("");
 
-  const handleFormSubmit = async (formData) => {
-    if (modal.data) {
-      await leadService.updateLead(modal.data._id, formData);
-    } else {
-      await leadService.createLead(formData);
-    }
-    setModal({ isOpen: false, data: null });
-    loadLeads();
-  };
+//   const updateRole = async () => {
+//     if (role === user.role) return;
 
-  const handleStatusChange = async (id, nextStatus) => {
-    try {
-      await leadService.patchStatus(id, nextStatus);
-      loadLeads();
-    } catch (err) {
-      alert(err.message || "State machine rule violation encountered.");
-    }
-  };
+//     try {
+//       setLoading(true);
+//       setError("");
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Permanently wipe this lead record?")) return;
-    try {
-      await leadService.deleteLead(id);
-      loadLeads();
-    } catch (err) { console.error(err); }
-  };
+//       await apiRequest(`/users/${user._id || user.id}/role`, {
+//         method: "PATCH",
+//         body: JSON.stringify({ role }),
+//       });
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 border rounded-xl shadow-sm">
-        <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Lead Registry Control</h1>
-          <p className="text-sm text-gray-500">Monitor pipeline conversions, channels, and personnel assignments.</p>
-        </div>
-        <button onClick={() => setModal({ isOpen: true, data: null })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg shadow-sm shadow-blue-500/10 transition">
-          + Onboard Lead
-        </button>
-      </div>
+//       await onUpdated();
+//     } catch (err) {
+//       setError(err.message);
+//       setRole(user.role);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <input 
-          placeholder="Filter string matching details..." 
-          value={filters.search}
-          onChange={e => setFilters(prev => ({ ...prev, search: e.target.value, page: 1 }))}
-          className="border rounded-xl px-4 py-2 bg-white shadow-sm outline-none text-sm"
-        />
-        <select 
-          value={filters.status}
-          onChange={e => setFilters(prev => ({ ...prev, status: e.target.value, page: 1 }))}
-          className="border rounded-xl px-4 py-2 bg-white shadow-sm outline-none text-sm"
-        >
-          <option value="">All Workflow Stages</option>
-          {['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Nurturing', 'Lost', 'Won'].map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select 
-          value={`${filters.sortBy}-${filters.sortOrder}`}
-          onChange={e => {
-            const [sortBy, sortOrder] = e.target.value.split('-');
-            setFilters(prev => ({ ...prev, sortBy, sortOrder, page: 1 }));
-          }}
-          className="border rounded-xl px-4 py-2 bg-white shadow-sm outline-none text-sm"
-        >
-          <option value="createdAt-desc">Date Created (Newest)</option>
-          <option value="createdAt-asc">Date Created (Oldest)</option>
-          <option value="name-asc">Name (A-Z)</option>
-          <option value="name-desc">Name (Z-A)</option>
-        </select>
-      </div>
+//   return (
+//     <div>
+//       <div className="d-flex gap-2">
+//         <select
+//           className="form-select form-select-sm"
+//           value={role}
+//           onChange={(e) => setRole(e.target.value)}
+//           disabled={loading}
+//         >
+//           {roles.map((item) => (
+//             <option key={item} value={item}>
+//               {item}
+//             </option>
+//           ))}
+//         </select>
 
-      <LeadTable 
-        leads={leads} 
-        onEdit={(lead) => setModal({ isOpen: true, data: lead })} 
-        onDelete={handleDelete} 
-        onStatusChange={handleStatusChange} 
-      />
+//         <button
+//           className="btn btn-sm btn-success"
+//           onClick={updateRole}
+//           disabled={loading || role === user.role}
+//         >
+//           {loading ? "Saving..." : "Save"}
+//         </button>
+//       </div>
 
-      <Pagination 
-        pagination={pagination} 
-        onPageChange={(page) => setFilters(prev => ({ ...prev, page }))} 
-      />
+//       {error && <small className="text-danger">{error}</small>}
+//     </div>
+//   );
+// };
 
-      <LeadModal 
-        isOpen={modal.isOpen} 
-        onClose={() => setModal({ isOpen: false, data: null })} 
-        title={modal.data ? "Update Lead Profile" : "Register Target Lead"}
-      >
-        <LeadForm 
-          initialData={modal.data} 
-          onSubmit={handleFormSubmit} 
-          onClose={() => setModal({ isOpen: false, data: null })} 
-        />
-      </LeadModal>
-    </div>
-  );
-}
+// export default RoleSelector;
