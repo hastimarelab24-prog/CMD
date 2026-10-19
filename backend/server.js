@@ -9,9 +9,18 @@ const User = require('./models/User')
 const authMiddleware = require("./middleware/authMiddleware")
 const {validateRegistration,validateLogin} = require('./middleware/validationMiddleware')
 const connectDB = require('./config/db')
-
+const followup = require('./routes/followUpRoutes')
 const app = express();
   connectDB()
+  const {
+  startNotificationScheduler,
+} = require("./services/notificationService");
+
+// MongoDB સફળતાપૂર્વક connect થયા પછી
+startNotificationScheduler();
+const notificationRoutes = require("./routes/notificationRoutes");
+
+app.use("/api/notifications", notificationRoutes);
 
 //  CRITICAL FIX: These body parsers MUST be declared before any route handles requests!
 app.use(cors());
@@ -21,6 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/leads',require('./routes/leadRoutes'));
 app.use('/api/auth',require('./routes/authRoutes'))
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/follow-ups',followup)
 //  Debug Testing Route
 app.get('/test', (req, res) => {
   res.send('Backend Server is live and fully accessible!');
