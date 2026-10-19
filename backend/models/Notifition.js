@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema(
@@ -8,44 +9,50 @@ const notificationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-
     followUp: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "FollowUp",
-      required: true,
+      default: null,
     },
-
-    type: {
+    title: {
       type: String,
-      enum: ["upcoming", "overdue", "completed", "assigned"],
       required: true,
+      trim: true,
     },
-
     message: {
       type: String,
       required: true,
+      trim: true,
     },
-
-    read: {
+    type: {
+      type: String,
+      enum: ["reminder", "overdue", "general"],
+      default: "reminder",
+    },
+    isRead: {
       type: Boolean,
       default: false,
     },
-
-    sentAt: {
+    readAt: {
       type: Date,
-      default: Date.now,
+      default: null,
     },
   },
   { timestamps: true }
 );
 
-// એક જ task માટે એક જ પ્રકારની duplicate notification અટકાવે.
+notificationSchema.index({ user: 1, isRead: 1, createdAt: -1 });
+
+// One notification per follow-up, recipient and type.
 notificationSchema.index(
   { user: 1, followUp: 1, type: 1 },
-  { unique: true }
+  {
+    unique: true,
+    partialFilterExpression: {
+      followUp: { $type: "objectId" },
+      type: { $in: ["reminder", "overdue"] },
+    },
+  }
 );
 
-module.exports = mongoose.model(
-  "Notification",
-  notificationSchema
-);
+module.exports = mongoose.model("Notification", notificationSchema);
