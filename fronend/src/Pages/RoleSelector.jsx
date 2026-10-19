@@ -1,6 +1,4 @@
-
 import { useState } from "react";
-// import { apiRequest } from "../api";
 import { apiRequest } from "../api/api";
 
 const roles = ["administrator", "manager", "employee"];
@@ -32,10 +30,11 @@ const RoleSelector = ({ user, onUpdated }) => {
   };
 
   return (
-    <div>
-      <div className="d-flex gap-2">
+    <div className="w-full max-w-xs">
+      {/* Tailwind equivalent of d-flex gap-2 */}
+      <div className="flex gap-2 items-center">
         <select
-          className="form-select form-select-sm"
+          className="block w-full rounded-md border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 border"
           value={role}
           onChange={(e) => setRole(e.target.value)}
           disabled={loading}
@@ -48,7 +47,7 @@ const RoleSelector = ({ user, onUpdated }) => {
         </select>
 
         <button
-          className="btn btn-sm btn-success"
+          className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={updateRole}
           disabled={loading || role === user.role}
         >
@@ -56,7 +55,8 @@ const RoleSelector = ({ user, onUpdated }) => {
         </button>
       </div>
 
-      {error && <small className="text-danger">{error}</small>}
+      {/* Tailwind equivalent of text-danger */}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );
 };

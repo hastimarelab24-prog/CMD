@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "../api/api";
 import { Link } from "react-router-dom";
 
@@ -9,11 +9,12 @@ const Team = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-const loadUsers = async () => {
+const loadUsers =useCallback( async () => {
   try {
     setError("");
-
-    const data = await apiRequest("get", "/users");
+    setLoading(true)
+    // api request endpoint,method,body
+    const  data = await apiRequest( "/users","GET",);
 
     setUsers(
       Array.isArray(data)
@@ -30,11 +31,11 @@ const loadUsers = async () => {
   } finally {
     setLoading(false);
   }
-};
+},[]);
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   return (
     <div className="container mt-4">

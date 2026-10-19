@@ -31,11 +31,17 @@ const handleSubmit = async (e) => {
   setError("");
 
   try {
+    setError("")
     setLoading(true);
 
-    await apiRequest("post", "/users", form);
+   const data= await apiRequest( "/users","post" ,{
+    name:form.name,email:form.email,password:form.password,role:form.role,   });
+    alert(data.message || "team member created SUCCESSFULLY!")
+    setForm(  {
+      name:"",email:"",password:"",role:"employee",
+    })
 
-    navigate("/team");
+    // navigate("/team");
 
 } catch (error) {
   console.error("Create user failed:", error.response?.data || error);
