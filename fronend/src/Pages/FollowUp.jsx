@@ -467,3 +467,206 @@ const FollowUps = () => {
 };
 
 export default FollowUps;
+
+
+
+// import React, { useCallback, useEffect, useState } from "react";
+// import { apiRequest } from "../api/api";
+// import NotificationBell from "../components/NotificationBell";
+
+// const FollowUps = () => {
+//   const [followUps, setFollowUps] = useState([]);
+//   const [view, setView] = useState("all");
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState("");
+// const loadFollowUps = useCallback(async () => {
+//   try {
+//     setLoading(true);
+//     setError("");
+
+//     const response = await apiRequest("/follow-ups", {
+//       method: "GET",
+//     });
+
+//     setFollowUps(
+//       Array.isArray(response)
+//         ? response
+//         : response?.followUps || []
+//     );
+//   } catch (error) {
+//     console.error("Load follow-ups error:", error);
+
+//     setError(
+//       error.response?.data?.message ||
+//       error.response?.data?.error ||
+//       error.message ||
+//       "Unable to load follow-ups."
+//     );
+//   } finally {
+//     setLoading(false);
+//   }
+// }, []);
+
+// useEffect(() => {
+//   loadFollowUps();
+// }, [loadFollowUps]);
+
+//   const completeFollowUp = async (id) => {
+//     try {
+//       await apiRequest(`/follow-ups/${id}/complete`, {
+//         method: "PATCH",
+//       });
+//       await loadFollowUps();
+//     } catch (err) {
+//       setError(
+//         err.response?.data?.message || "Unable to complete follow-up."
+//       );
+//     }
+//   };
+
+//   const cancelFollowUp = async (id) => {
+//     try {
+//       await apiRequest(`/follow-ups/${id}/cancel`, {
+//         method: "PATCH",
+//       });
+//       await loadFollowUps();
+//     } catch (err) {
+//       setError(
+//         err.response?.data?.message || "Unable to cancel follow-up."
+//       );
+//     }
+//   };
+
+//   return (
+//     <main className="min-h-screen bg-slate-50 p-4 sm:p-6">
+//       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+//         <div>
+//           <h1 className="text-2xl font-bold text-slate-900">
+//             Follow-ups and Activities
+//           </h1>
+//           <p className="mt-1 text-sm text-slate-500">
+//             Manage scheduled calls, emails, meetings and tasks.
+//           </p>
+//         </div>
+//         <NotificationBell />
+//       </div>
+
+//       <div className="mb-6 flex flex-wrap gap-2">
+//         {[
+//           ["all", "All"],
+//           ["upcoming", "Upcoming"],
+//           ["overdue", "Overdue"],
+//         ].map(([value, label]) => (
+//           <button
+//             key={value}
+//             type="button"
+//             onClick={() => setView(value)}
+//             className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+//               view === value
+//                 ? "bg-blue-700 text-white"
+//                 : "border bg-white text-slate-700 hover:bg-slate-100"
+//             }`}
+//           >
+//             {label}
+//           </button>
+//         ))}
+//       </div>
+
+//       {error && (
+//         <div role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-700">
+//           {error}
+//         </div>
+//       )}
+
+//       {loading ? (
+//         <p className="text-slate-500">Loading follow-ups...</p>
+//       ) : followUps.length === 0 ? (
+//         <div className="rounded-xl border bg-white p-8 text-center">
+//           <p className="font-semibold text-slate-700">
+//             No {view === "all" ? "" : `${view} `}follow-ups found.
+//           </p>
+//         </div>
+//       ) : (
+//         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+//           {followUps.map((item) => {
+//             const dueTime = new Date(item.dueDate).getTime();
+//             const overdue =
+//               item.status === "pending" && dueTime < Date.now();
+
+//             const assignedName =
+//               typeof item.assignedTo === "object"
+//                 ? item.assignedTo?.name || item.assignedTo?.email
+//                 : null;
+
+//             return (
+//               <article
+//                 key={item._id}
+//                 className="rounded-xl border bg-white p-5 shadow-sm"
+//               >
+//                 <div className="mb-3 flex items-start justify-between gap-2">
+//                   <h2 className="font-bold text-slate-900">
+//                     {item.title}
+//                   </h2>
+
+//                   <span
+//                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
+//                       overdue
+//                         ? "bg-red-100 text-red-700"
+//                         : item.status === "completed"
+//                         ? "bg-green-100 text-green-700"
+//                         : item.status === "cancelled"
+//                         ? "bg-slate-100 text-slate-600"
+//                         : "bg-blue-100 text-blue-700"
+//                     }`}
+//                   >
+//                     {overdue ? "Overdue" : item.status}
+//                   </span>
+//                 </div>
+
+//                 <p className="text-sm text-slate-600">
+//                   Type: {item.type}
+//                 </p>
+//                 <p className="mt-1 text-sm text-slate-600">
+//                   Priority: {item.priority}
+//                 </p>
+//                 <p className="mt-1 text-sm text-slate-600">
+//                   Due:{" "}
+//                   {item.dueDate
+//                     ? new Date(item.dueDate).toLocaleString()
+//                     : "Not set"}
+//                 </p>
+//                 <p className="mt-1 text-sm text-slate-600">
+//                   Assigned to: {assignedName || "User not found"}
+//                 </p>
+//                 <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+//                   {item.notes || "No notes"}
+//                 </p>
+
+//                 {item.status === "pending" && (
+//                   <div className="mt-4 flex flex-wrap gap-2">
+//                     <button
+//                       type="button"
+//                       onClick={() => completeFollowUp(item._id)}
+//                       className="rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white"
+//                     >
+//                       Complete
+//                     </button>
+//                     <button
+//                       type="button"
+//                       onClick={() => cancelFollowUp(item._id)}
+//                       className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700"
+//                     >
+//                       Cancel
+//                     </button>
+//                   </div>
+//                 )}
+//               </article>
+//             );
+//           })}
+//         </div>
+//       )}
+//     </main>
+//   );
+// };
+
+// export default FollowUps;
