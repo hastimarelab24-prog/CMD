@@ -192,5 +192,25 @@ router.patch("/:id/role", async (req, res) => {
     });
   }
 });
+// Authenticated users can fetch active employees for assignment dropdown.
+router.get("/employees", authMiddleware, async (req, res, next) => {
+  try {
+    const User = require("../models/User");
 
+    const employees = await User.find({
+      role: "employee",
+      isActive: { $ne: false },
+    })
+      .select("name email")
+      .sort({ name: 1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      users: employees,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 module.exports = router;
