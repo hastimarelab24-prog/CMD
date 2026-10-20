@@ -136,11 +136,12 @@ const Dashboard = () => {
 
       try {
         // This endpoint must exist in your backend.
-        const response = await apiRequest("/dashboard/stats");
+       
+        const data = await apiRequest("GET", "/dashboard/stats");
 
         if (!active) return;
 
-        setOverview(response?.data ?? response ?? {});
+        setOverview(data?.data ?? data ?? {});
       } catch (err) {
         if (!active) return;
 
