@@ -83,6 +83,7 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
   if (token) {
+    // config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -90,11 +91,11 @@ api.interceptors.request.use((config) => {
 });
 
 export async function apiRequest(url, options = {}) {
-  const method = (options.method || "GET").toLowerCase();
+  // const method = (options.method || "GET").toLowerCase();
 
   const config = {
     url,
-    method,
+    method:options.method || "GET",
     params: options.params,
   };
 

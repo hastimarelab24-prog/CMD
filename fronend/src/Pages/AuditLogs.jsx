@@ -13,15 +13,17 @@ const AuditLogs = () => {
         setError("");
 
         // First argument is the HTTP method
-        const data = await apiRequest("get", "/audit-logs");
-
-        setLogs(
-          Array.isArray(data)
-            ? data
-            : Array.isArray(data?.logs)
-              ? data.logs
-              : []
-        );
+        const data = await apiRequest("/audit-logs",{
+          method:"GET",
+        });
+        setLogs(data.logs || [])
+        // setLogs(
+        //   Array.isArray(data)
+        //     ? data
+        //     : Array.isArray(data?.logs)
+        //       ? data.logs
+        //       : []
+        // );
       } catch (err) {
         console.error(
           "Failed to load audit logs:",

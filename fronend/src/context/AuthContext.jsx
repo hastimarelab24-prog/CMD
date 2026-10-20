@@ -40,29 +40,38 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    try{
+
+      const savedUser = localStorage.getItem('user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    }catch{
+      return null;
+    }
   });
 
   useEffect(() => {
     if (token) {
       localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setUser(null);
     }
+    //  else {
+    //   localStorage.removeItem('token');
+    //   localStorage.removeItem('user');
+    //   setUser(null);
+    // }
   }, [token]);
 
   const login = (jwtToken, userData) => {
     setToken(jwtToken);
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('token', jwtToken);
   };
 
   const logout = () => {
     setToken('');
     setUser(null);
+    localStorage.removeItem("token")
+    localStorage.removeItem("user");
   };
 
   return (
