@@ -11,7 +11,7 @@ const {validateRegistration,validateLogin} = require('./middleware/validationMid
 const connectDB = require('./config/db')
 const followup = require('./routes/followUpRoutes')
 const app = express();
-  connectDB()
+ 
   const {
   startNotificationScheduler,
 } = require("./services/notificationService");
@@ -20,17 +20,21 @@ const app = express();
 startNotificationScheduler();
 const notificationRoutes = require("./routes/notificationRoutes");
 
-app.use("/api/notifications", notificationRoutes);
+const auditLogRoutes = require("./routes/auditLogRoutes");
 
 //  CRITICAL FIX: These body parsers MUST be declared before any route handles requests!
 app.use(cors());
 app.use(express.json()); 
+
 app.use(express.urlencoded({ extended: true }));
+app.use("/api/dashboard", require("./routes/dashboardRoutes"));
 
 app.use('/api/leads',require('./routes/leadRoutes'));
 app.use('/api/auth',require('./routes/authRoutes'))
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/follow-ups',followup)
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
 //  Debug Testing Route
 app.get('/test', (req, res) => {
   res.send('Backend Server is live and fully accessible!');
