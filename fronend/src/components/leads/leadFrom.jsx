@@ -124,8 +124,8 @@ export default function LeadForm({
         setLoadingEmployees(true);
 
         // apiRequest signature: (method, endpoint, data)
-        const data = await apiRequest("get", "/users");
-
+        // const data = await apiRequest("get", "/users");
+const data = await apiRequest("get", "/users/employees");
         const users = Array.isArray(data)
           ? data
           : data?.users || data?.data || [];
