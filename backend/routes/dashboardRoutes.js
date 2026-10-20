@@ -1,263 +1,180 @@
 
 const express = require("express");
+const mongoose = require("mongoose");
+
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const Lead = require("../models/lead");
-const FollowUp = require("../models/FollowUp");
 const User = require("../models/User");
 
-let AuditLog = null;
-
-try {
-  AuditLog = require("../models/AuditLog");
-} catch (error) {
-  console.warn("AuditLog model is unavailable.");
-}
-
+// All dashboard APIs require authentication
 router.use(authMiddleware);
 
-function getUserId(req) {
-  return req.user?._id || req.user?.id || req.user?.userId;
-}
-
-function getRole(req) {
-  return String(req.user?.role || "").toLowerCase();
-}
-
-function findPath(Model, candidates) {
-  return candidates.find((path) => Model.schema.path(path));
-}
-
-function buildOwnerFilter(Model, userId, isAdminOrManager) {
-  if (isAdminOrManager) return {};
-
-  const ownerPath = findPath(Model, [
-    "assignedEmployee",
-    "assignedTo",
-    "assignedUser",
-    "owner",
-    "createdBy",
-    "user",
-  ]);
-
-  if (!ownerPath) {
-    throw new Error(
-      `No ownership field found in ${Model.modelName}. ` +
-      "Configure the correct employee ownership field."
-    );
-  }
-
-  return { [ownerPath]: userId };
-}
-
+// GET /api/dashboard/overview
 router.get("/overview", async (req, res) => {
   try {
-    const userId = getUserId(req);
-    const role = getRole(req);
+    const userId = req.user.id || req.user._id;
+    const userRole = String(req.user.role || "").toLowerCase();
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authenticated user ID is missing.",
-      });
-    }
+    const leadFilter = {};
 
-    const isAdminOrManager = [
-      "administrator",
-      "manager",
-    ].includes(role);
+    // Employees see only their assigned leads
+    if (userRole === "employee") {
+      if (!mongoose.isValidObjectId(userId)) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid authenticated user.",
+        });
+      }
 
-    const leadFilter = buildOwnerFilter(
-      Lead,
-      userId,
-      isAdminOrManager
-    );
-
-    const followUpFilter = buildOwnerFilter(
-      FollowUp,
-      userId,
-      isAdminOrManager
-    );
-
-    const leadStatusPath = findPath(Lead, ["status"]);
-    const dueDatePath = findPath(FollowUp, [
-      "dueDate",
-      "dueAt",
-      "scheduledAt",
-      "date",
-    ]);
-
-    if (!leadStatusPath) {
-      throw new Error("Lead model has no status field.");
-    }
-
-    if (!dueDatePath) {
-      throw new Error(
-        "FollowUp model has no recognized due-date field."
-      );
-    }
-
-    const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const completionPath = findPath(FollowUp, [
-      "status",
-      "completionStatus",
-    ]);
-
-    const completedPath = findPath(FollowUp, [
-      "completed",
-      "isCompleted",
-    ]);
-
-    const todayFilter = {
-      ...followUpFilter,
-      [dueDatePath]: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
-    };
-
-    if (completionPath) {
-      todayFilter[completionPath] = {
-        $nin: ["completed", "cancelled", "canceled"],
-      };
-    } else if (completedPath) {
-      todayFilter[completedPath] = { $ne: true };
+      leadFilter.assignedEmployee = userId;
     }
 
     const [
       totalLeads,
+      convertedLeads,
       recentLeads,
-      statusGroups,
-      followUpsToday,
-      users,
-      recentActivities,
+      statusCounts,
+      teamUsers,
     ] = await Promise.all([
       Lead.countDocuments(leadFilter),
+
+      Lead.countDocuments({
+        ...leadFilter,
+        status: "won",
+      }),
 
       Lead.find(leadFilter)
         .sort({ createdAt: -1 })
         .limit(5)
+        .populate("assignedEmployee", "name email")
         .lean(),
 
       Lead.aggregate([
         { $match: leadFilter },
         {
           $group: {
-            _id: `$${leadStatusPath}`,
+            _id: "$status",
             count: { $sum: 1 },
           },
         },
-        { $sort: { count: -1 } },
       ]),
 
-      FollowUp.find(todayFilter)
-        .sort({ [dueDatePath]: 1 })
-        .limit(10)
-        .lean(),
-
-      isAdminOrManager
-        ? User.find({ isActive: { $ne: false } })
-            .select("name email role")
-            .lean()
-        : User.find({ _id: userId })
-            .select("name email role")
-            .lean(),
-
-      AuditLog
-        ? AuditLog.find(
-            isAdminOrManager ? {} : { user: userId }
-          )
-            .populate("user", "name email")
-            .sort({ createdAt: -1 })
-            .limit(5)
+      userRole === "administrator" || userRole === "manager"
+        ? User.find({
+            role: "employee",
+            isActive: { $ne: false },
+          })
+            .select("name email")
             .lean()
         : Promise.resolve([]),
     ]);
 
-    const leadStatus = statusGroups.map((item) => ({
-      status: item._id || "unknown",
+    const leadStatus = statusCounts.map((item) => ({
+      status: item._id,
       count: item.count,
     }));
 
-    const wonStatuses = ["won"];
-
-    const convertedLeads = leadStatus
-      .filter((item) =>
-        wonStatuses.includes(
-          String(item.status).toLowerCase()
-        )
-      )
-      .reduce((sum, item) => sum + item.count, 0);
-
     const teamPerformance = await Promise.all(
-      users.map(async (member) => {
-        const memberLeadFilter = {
-          ...leadFilter,
-        };
+      teamUsers.map(async (employee) => {
+        const assignedCount = await Lead.countDocuments({
+          assignedEmployee: employee._id,
+        });
 
-        const ownerPath = findPath(Lead, [
-          "assignedEmployee",
-          "assignedTo",
-          "assignedUser",
-          "owner",
-          "createdBy",
-          "user",
-        ]);
-
-        if (ownerPath) {
-          memberLeadFilter[ownerPath] = member._id;
-        }
-
-        const assignedLeads = await Lead.countDocuments(
-          memberLeadFilter
-        );
-
-        const wonFilter = {
-          ...memberLeadFilter,
-          [leadStatusPath]: {
-            $in: wonStatuses,
-          },
-        };
-
-        const memberConvertedLeads =
-          await Lead.countDocuments(wonFilter);
+        const wonCount = await Lead.countDocuments({
+          assignedEmployee: employee._id,
+          status: "won",
+        });
 
         return {
-          userId: member._id,
-          name: member.name,
-          email: member.email,
-          role: member.role,
-          assignedLeads,
-          convertedLeads: memberConvertedLeads,
+          _id: employee._id,
+          name: employee.name,
+          email: employee.email,
+          totalLeads: assignedCount,
+          convertedLeads: wonCount,
         };
       })
     );
 
     return res.status(200).json({
       success: true,
-      data: {
-        totalLeads,
-        convertedLeads,
-        recentLeads,
-        leadStatus,
-        teamPerformance,
-        followUpsToday,
-        recentActivities,
-      },
+      totalLeads,
+      convertedLeads,
+      recentLeads,
+      leadStatus,
+      teamPerformance,
+      followUpsToday: [],
+      recentActivities: [],
     });
   } catch (error) {
-    console.error("Dashboard API error:", error);
+    console.error("Dashboard overview error:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to load dashboard.",
+      message: "Failed to load dashboard overview.",
+    });
+  }
+});
+
+// GET /api/dashboard/profile
+router.get("/profile", async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+
+    const user = await User.findById(userId)
+      .select("-password")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Dashboard profile error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load profile.",
+    });
+  }
+});
+
+// GET /api/dashboard/stats
+router.get("/stats", async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const userRole = String(req.user.role || "").toLowerCase();
+
+    const filter = {};
+
+    if (userRole === "employee") {
+      filter.assignedEmployee = userId;
+    }
+
+    const [totalLeads, convertedLeads] = await Promise.all([
+      Lead.countDocuments(filter),
+      Lead.countDocuments({ ...filter, status: "won" }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      totalLeads,
+      convertedLeads,
+    });
+  } catch (error) {
+    console.error("Dashboard stats error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load dashboard stats.",
     });
   }
 });

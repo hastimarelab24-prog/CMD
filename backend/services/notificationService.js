@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const FollowUp = require("../models/FollowUp");
-const Notification = require("../models/Notifition");
+const Notification = require("../models/Notification");
 
 async function createNotificationOnce(data) {
   try {
