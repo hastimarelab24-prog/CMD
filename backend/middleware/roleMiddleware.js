@@ -1,6 +1,7 @@
+
 module.exports = (...allowedRoles) => {
-  const normalizaedRole = allowedRoles.map((role) =>
-    String(role).trim().toLowerCase(),
+  const normalizedRoles = allowedRoles.map((role) =>
+    String(role).trim().toLowerCase()
   );
 
   return (req, res, next) => {
@@ -11,9 +12,9 @@ module.exports = (...allowedRoles) => {
       });
     }
 
-    const userRole = String(req.user.role).toLowerCase().trim();
+    const userRole = String(req.user.role).trim().toLowerCase();
 
-    if (!normalizaedRole.includes(userRole)) {
+    if (!normalizedRoles.includes(userRole)) {
       console.log("Role access denied", {
         userId: req.user.id,
         actualRole: userRole,
@@ -27,6 +28,6 @@ module.exports = (...allowedRoles) => {
       });
     }
 
-    next();
+    return next();
   };
 };

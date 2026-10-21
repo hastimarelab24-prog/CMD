@@ -1,12 +1,9 @@
 const mongoose = require("mongoose");
+const authConnection = require("../config/authdb");
 
 const authUserSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    name: { type: String, required: true, trim: true },
     email: {
       type: String,
       required: true,
@@ -14,25 +11,18 @@ const authUserSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    password: {
-      type: String,
-      required: true,
-      select: false,
-    },
+    password: { type: String, required: true, select: false },
     role: {
       type: String,
       enum: ["administrator", "manager", "employee"],
       default: "employee",
       required: true,
     },
-
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    isActive: { type: Boolean, default: true },
   },
-  { timestamps: true, collection: "users" },
+  { timestamps: true, collection: "users" }
 );
+
 module.exports =
-  mongoose.model.AuthUser ||
-  mongoose.model("AuthUser", authUserSchema, "users");
+  authConnection.models.AuthUser ||
+  authConnection.model("AuthUser", authUserSchema);

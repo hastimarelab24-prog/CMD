@@ -1,8 +1,8 @@
-
 const mongoose = require("mongoose");
 
 const authConnection = mongoose.createConnection(
- process.env.AUTH_MONGODB_URI|| "mongodb://127.0.0.1:27017/crm_auth_db"
+  process.env.AUTH_MONGODB_URI ||
+    "mongodb://127.0.0.1:27017/crm_auth_db"
 );
 
 authConnection.on("connected", () => {

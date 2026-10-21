@@ -20,7 +20,7 @@ const createToken = (user) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "8h" }
+    { expiresIn: "8h" },
   );
 };
 const formatUser = (user) => ({
@@ -130,9 +130,7 @@ router.post("/login", async (req, res) => {
         : "";
 
     const password =
-      typeof req.body?.password === "string"
-        ? req.body.password
-        : "";
+      typeof req.body?.password === "string" ? req.body.password : "";
 
     if (!email || !password) {
       return res.status(400).json({
@@ -140,13 +138,16 @@ router.post("/login", async (req, res) => {
         message: "Email and password are required.",
       });
     }
-
-    // Find user in MongoDB: leadsphere.users
-    console.log("[LOGIN] Searching for user");
+    console.log("[LOGIN] Database:", AuthUser.db.name);
+    console.log("[LOGIN] Collection:", AuthUser.collection.name);
+    console.log("[LOGIN] Email:", email);
 
     const user = await AuthUser.findOne({ email }).select("+password");
 
     console.log("[LOGIN] User found:", Boolean(user));
+    console.log("[LOGIN] Role:", user?.role);
+    console.log("[LOGIN] Active:", user?.isActive);
+    console.log("[LOGIN] Password hash exists:", Boolean(user?.password));
 
     if (!user) {
       return res.status(401).json({
@@ -173,10 +174,7 @@ router.post("/login", async (req, res) => {
 
     console.log("[LOGIN] Verifying password");
 
-    const passwordMatches = await bcrypt.compare(
-      password,
-      user.password
-    );
+    const passwordMatches = await bcrypt.compare(password, user.password);
 
     if (!passwordMatches) {
       return res.status(401).json({
@@ -186,11 +184,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Give legacy accounts without a role the least-privileged role.
-    const allowedRoles = [
-      "administrator",
-      "manager",
-      "employee",
-    ];
+    const allowedRoles = ["administrator", "manager", "employee"];
 
     if (!allowedRoles.includes(user.role)) {
       user.role = "employee";
@@ -218,5 +212,3 @@ router.post("/login", async (req, res) => {
 });
 
 module.exports = router;
-
-
