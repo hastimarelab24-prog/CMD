@@ -1,26 +1,14 @@
+
 const mongoose = require("mongoose");
 
-const connectDB =async()=>{
-  try{
-    await mongoose.connect(
-   process.env.MONGODB_URL||   "mongodb://127.0.0.1:27017/leadsphere",
-    )
-    console.log("mongoDb connection",mongoose.connection.name);
-    
-  }catch(error){
-    console.error("MongoSb connection failed",error.messange);
-    throw error;
-    
-  }
+async function connectDB() {
+  const mongoURI =
+    process.env.MONGODB_URI ||
+    "mongodb://127.0.0.1:27017/leadsphere";
 
+  await mongoose.connect(mongoURI);
 
-// crmConnection.on("connected", () => {
-//   console.log("Connected to leadsphere database");
-// });
-
-// crmConnection.on("error", (error) => {
-//   console.error("leadsphere database error:", error.message);
-// });
+  console.log("Connected database:", mongoose.connection.name);
 }
 
 module.exports = connectDB;

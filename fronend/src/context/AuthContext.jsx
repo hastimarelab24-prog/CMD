@@ -1,82 +1,59 @@
-// import React, { createContext, useEffect, useState } from 'react'
-// export const AuthContext = createContext()
+import React, {
+  createContext,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 
-// export const AuthProvider = ({children}) => {
-//     const [user,setUser]= useState(()=>{
-//         const savedUser = localStorage.getItem('user');return savedUser ? JSON.parse(savedUser) :null;
-//     });
-//     const [token,setToken]= useState(localStorage.getItem('token') || '');
-//     useEffect(()=>{
-//         if(token){
-//             localStorage.setItem('token', token);
-//         }else{
-//             localStorage.removeItem('token')
-//             localStorage.removeItem('user')
-//             setUser(null)
-//         }
-//     },[token])
-//     const login = (jwtToken,userData)=>{
-//         setToken(jwtToken); setUser(userData); 
-//         localStorage.setItem('user',JSON.stringify(userData))
-//     }
+export const AuthContext = createContext(null);
 
-//     const logout =()=>{
-//         setToken(''); setUser(null);
-//     }
-//   return (
-// <AuthContext.Provider value={{user,token, login, logout}}>
-//     {children}
-// </AuthContext.Provider>
-//   )
-// }
+export function AuthProvider({ children }) {
+  const [token, setToken] = useState(
+    () => localStorage.getItem("token")
+  );
 
-
-import React, { createContext, useState, useEffect } from 'react';
-
-// 💡 Named Export for the Context layout node
-export const AuthContext = createContext();
-
-// 💡 Named Export for the structural provider wrapping component
-export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [user, setUser] = useState(() => {
-    try{
-
-      const savedUser = localStorage.getItem('user');
-      return savedUser ? JSON.parse(savedUser) : null;
-    }catch{
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
       return null;
     }
   });
 
-  useEffect(() => {
-    if (token) {
-      localStorage.setItem('token', token);
+  const login = useCallback((newToken, newUser) => {
+    if (!newToken || !newUser) {
+      throw new Error("Token or user information is missing.");
     }
-    //  else {
-    //   localStorage.removeItem('token');
-    //   localStorage.removeItem('user');
-    //   setUser(null);
-    // }
-  }, [token]);
 
-  const login = (jwtToken, userData) => {
-    setToken(jwtToken);
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', jwtToken);
-  };
+    localStorage.setItem("token", newToken);
+    localStorage.setItem("user", JSON.stringify(newUser));
 
-  const logout = () => {
-    setToken('');
-    setUser(null);
-    localStorage.removeItem("token")
+    setToken(newToken);
+    setUser(newUser);
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
     localStorage.removeItem("user");
-  };
+
+    setToken(null);
+    setUser(null);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      token,
+      user,
+      isAuthenticated: Boolean(token && user),
+      login,
+      logout,
+    }),
+    [token, user, login, logout]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, setUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
+}

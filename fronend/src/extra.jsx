@@ -1,41 +1,32 @@
+module.exports = (...allowedRoles) => {
+  const normalizedRoles = allowedRoles.map((role) =>
+    String(role).trim().toLowerCase()
+  );
 
-const mongoose = require("mongoose");
+  return (req, res, next) => {
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required. Please login again.",
+      });
+    }
 
-const authUserSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: true,
-      select: false,
-    },
-    role: {
-      type: String,
-      enum: ["administrator", "manager", "employee"],
-      default: "employee",
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  {
-    timestamps: true,
-    collection: "users",
-  }
-);
+    const userRole = String(req.user.role).trim().toLowerCase();
 
-module.exports =
-  mongoose.models.AuthUser ||
-  mongoose.model("AuthUser", authUserSchema);
+    if (!normalizedRoles.includes(userRole)) {
+      console.log("[ROLE DENIED]", {
+        userId: req.user.id,
+        actualRole: userRole,
+        allowedRoles: normalizedRoles,
+        path: req.originalUrl,
+      });
+
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Insufficient permissions.",
+      });
+    }
+
+    return next();
+  };
+};

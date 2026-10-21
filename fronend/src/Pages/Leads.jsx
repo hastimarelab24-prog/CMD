@@ -1,25 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { leadService } from '../services/leadService';
-import LeadTable from '../components/leads/LeadTable';
-import LeadModal from '../components/leads/LeadModal';
-import LeadForm from '../components/leads/leadFrom'; // Matches the misspelled file on disk
-import Pagination from '../components/common/pagination'; 
+import React, { useState, useEffect } from "react";
+import { leadService } from "../services/leadService";
+import LeadTable from "../components/leads/LeadTable";
+import LeadModal from "../components/leads/LeadModal";
+import LeadForm from "../components/leads/leadFrom"; // Matches the misspelled file on disk
+import Pagination from "../components/common/pagination";
 
 export default function Leads() {
   const [leads, setLeads] = useState([]);
-  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
-  const [filters, setFilters] = useState({ search: '', status: '', sortBy: 'createdAt', sortOrder: 'desc', page: 1 });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+  });
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "",
+    sortBy: "createdAt",
+    sortOrder: "desc",
+    page: 1,
+  });
   const [modal, setModal] = useState({ isOpen: false, data: null });
 
-  const loadLeads = async () => {
-    try {
-      const data = await leadService.fetchLeads(filters);
-      setLeads(data.leads);
-      setPagination(data.pagination);
-    } catch (err) { console.error(err); }
-  };
+  // const loadLeads = async () => {
+  //   try {
+  //     const data = await leadService.fetchLeads(filters);
+  //     setLeads(data.leads);
+  //     setPagination(data.pagination);
+  //   } catch (err) { console.error(err); }
+  // };
+ const loadLeads = async () => {
+  try {
+    const data = await leadService.fetchLeads(filters);
 
-  useEffect(() => { loadLeads(); }, [filters]);
+    console.log("Fetched leads:", data.leads);
+    console.log("Pagination:", data.pagination);
+
+    setLeads(Array.isArray(data.leads) ? data.leads : []);
+    setPagination(
+      data.pagination || {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+      }
+    );
+  } catch (err) {
+    console.error(
+      "Load leads failed:",
+      err.response?.data || err.message
+    );
+  }
+};
+  useEffect(() => {
+    loadLeads();
+  }, [filters]);
 
   const handleFormSubmit = async (formData) => {
     if (modal.data) {
@@ -40,57 +72,78 @@ export default function Leads() {
     }
   };
 
- 
-const handleDelete = async (id) => {
-  if (!window.confirm("Permanently wipe this lead record?")) {
-    return;
-  }
+  const handleDelete = async (id) => {
+    if (!window.confirm("Permanently wipe this lead record?")) {
+      return;
+    }
 
-  try {
-    await leadService.deleteLead(id);
-    await loadLeads(); // તમારા હાલના refresh function નું નામ
-  } catch (error) {
-    console.error("Delete error:", error);
-    alert(
-      error.response?.data?.message ||
-      "Lead delete failed. Please try again."
-    );
-  }
-};
-
+    try {
+      await leadService.deleteLead(id);
+      await loadLeads(); // તમારા હાલના refresh function નું નામ
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert(
+        error.response?.data?.message ||
+          "Lead delete failed. Please try again.",
+      );
+    }
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 border rounded-xl shadow-sm">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Lead Registry Control</h1>
-          <p className="text-sm text-gray-500">Monitor pipeline conversions, channels, and personnel assignments.</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+            Lead Registry Control
+          </h1>
+          <p className="text-sm text-gray-500">
+            Monitor pipeline conversions, channels, and personnel assignments.
+          </p>
         </div>
-        <button onClick={() => setModal({ isOpen: true, data: null })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg shadow-sm shadow-blue-500/10 transition">
+        <button
+          onClick={() => setModal({ isOpen: true, data: null })}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg shadow-sm shadow-blue-500/10 transition"
+        >
           + Onboard Lead
         </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <input 
-          placeholder="Filter string matching details..." 
+        <input
+          placeholder="Filter string matching details..."
           value={filters.search}
-          onChange={e => setFilters(prev => ({ ...prev, search: e.target.value, page: 1 }))}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, search: e.target.value, page: 1 }))
+          }
           className="border rounded-xl px-4 py-2 bg-white shadow-sm outline-none text-sm"
         />
-        <select 
+        <select
           value={filters.status}
-          onChange={e => setFilters(prev => ({ ...prev, status: e.target.value, page: 1 }))}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, status: e.target.value, page: 1 }))
+          }
           className="border rounded-xl px-4 py-2 bg-white shadow-sm outline-none text-sm"
         >
           <option value="">All Workflow Stages</option>
-          {['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Nurturing', 'Lost', 'Won'].map(s => <option key={s} value={s}>{s}</option>)}
+          {[
+            "New",
+            "Contacted",
+            "Qualified",
+            "Proposal Sent",
+            "Nurturing",
+            "Lost",
+            "Won",
+          ].map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
         </select>
-        <select 
+        <select
           value={`${filters.sortBy}-${filters.sortOrder}`}
-          onChange={e => {
-            const [sortBy, sortOrder] = e.target.value.split('-');
-            setFilters(prev => ({ ...prev, sortBy, sortOrder, page: 1 }));
+          onChange={(e) => {
+            const [sortBy, sortOrder] = e.target.value.split("-");
+            setFilters((prev) => ({ ...prev, sortBy, sortOrder, page: 1 }));
           }}
           className="border rounded-xl px-4 py-2 bg-white shadow-sm outline-none text-sm"
         >
@@ -101,27 +154,27 @@ const handleDelete = async (id) => {
         </select>
       </div>
 
-      <LeadTable 
-        leads={leads} 
-        onEdit={(lead) => setModal({ isOpen: true, data: lead })} 
-        onDelete={handleDelete} 
-        onStatusChange={handleStatusChange} 
+      <LeadTable
+        leads={leads}
+        onEdit={(lead) => setModal({ isOpen: true, data: lead })}
+        onDelete={handleDelete}
+        onStatusChange={handleStatusChange}
       />
 
-      <Pagination 
-        pagination={pagination} 
-        onPageChange={(page) => setFilters(prev => ({ ...prev, page }))} 
+      <Pagination
+        pagination={pagination}
+        onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
       />
 
-      <LeadModal 
-        isOpen={modal.isOpen} 
-        onClose={() => setModal({ isOpen: false, data: null })} 
+      <LeadModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal({ isOpen: false, data: null })}
         title={modal.data ? "Update Lead Profile" : "Register Target Lead"}
       >
-        <LeadForm 
-          initialData={modal.data} 
-          onSubmit={handleFormSubmit} 
-          onClose={() => setModal({ isOpen: false, data: null })} 
+        <LeadForm
+          initialData={modal.data}
+          onSubmit={handleFormSubmit}
+          onClose={() => setModal({ isOpen: false, data: null })}
         />
       </LeadModal>
     </div>

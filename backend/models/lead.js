@@ -58,5 +58,5 @@ const leadActivitySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.models.LeadActivity ||
-  mongoose.model("LeadActivity", leadActivitySchema);
+module.exports = mongoose.models.Lead ||
+  mongoose.model("LeadActivity", leadActivitySchema,"leads");

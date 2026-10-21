@@ -1,7 +1,7 @@
 
 
 const mongoose = require("mongoose");
-const crmConnection = require("../config/db");
+
 
 const teamUserSchema = new mongoose.Schema(
   {
@@ -32,7 +32,8 @@ const teamUserSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true ,collection:"users"}
 );
 
-module.exports = mongoose.model("User", teamUserSchema,"users");
+module.exports = mongoose.model.User ||
+                  mongoose.model("User", teamUserSchema,"users");

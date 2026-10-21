@@ -21,8 +21,8 @@ import LeadActivity from "./Pages/LeadActivity";
 
 function App() {
   return (
-    // <BrowserRouter>
-      <AuthProvider>
+    <AuthProvider>
+         {/* <BrowserRouter> */}
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -87,6 +87,7 @@ function App() {
             element={<Navigate to="/dashboard" replace />}
           />
         </Routes>
+        {/* </BrowserRouter> */}
       </AuthProvider>
     
   );
