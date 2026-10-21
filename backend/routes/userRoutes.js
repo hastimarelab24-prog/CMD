@@ -1,16 +1,47 @@
 
 const express = require("express");
 const mongoose = require("mongoose");
-const User = require("../models/User");
+const User = require("../models/TeamUser");
 const authMiddleware = require("../middleware/authMiddleware");
 const allowRole = require("../middleware/roleMiddleware");
-const logAction = require("../until/auditLogger");
+const logAction = require("../utils/auditLogger");
 
 const router = express.Router();
 
 const validRoles = ["administrator", "manager", "employee"];
-
+// Apply authentication to all routes.
 router.use(authMiddleware);
+
+// Employee dropdown for authorized lead-creation roles.
+router.get(
+  "/employees",
+  allowRole("administrator", "manager","employee"),
+  async (req, res) => {
+    try {
+      const employees = await User.find({
+        role: "employee",
+        isActive: true,
+      })
+        .select("name email role")
+        .sort({ name: 1 })
+        .lean();
+
+      return res.status(200).json({
+        success: true,
+        employees,
+      });
+    } catch (error) {
+      console.error("Employee list error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to load employees.",
+      });
+    }
+  }
+);
+
+// Keep the remaining user-management routes administrator-only.
 router.use(allowRole("administrator"));
 
 // GET ALL USERS — administrator only
@@ -192,25 +223,5 @@ router.patch("/:id/role", async (req, res) => {
     });
   }
 });
-// Authenticated users can fetch active employees for assignment dropdown.
-router.get("/employees", authMiddleware, async (req, res, next) => {
-  try {
-    const User = require("../models/User");
 
-    const employees = await User.find({
-      role: "employee",
-      isActive: { $ne: false },
-    })
-      .select("name email")
-      .sort({ name: 1 })
-      .lean();
-
-    return res.status(200).json({
-      success: true,
-      users: employees,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 module.exports = router;

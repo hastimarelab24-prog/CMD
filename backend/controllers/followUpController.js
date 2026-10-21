@@ -794,8 +794,8 @@
 
 const mongoose = require("mongoose");
 const FollowUp = require("../models/FollowUp");
-const Lead = require("../models/Lead");
-const User = require("../models/User");
+const Lead = require("../models/lead");
+const User = require("../models/TeamUser");
 const Notification = require("../models/Notification");
 const auditLogger = require("../utils/auditLogger");
 

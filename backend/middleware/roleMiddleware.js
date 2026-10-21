@@ -22,9 +22,9 @@
 
 
 
-module.exports = (...allowedRoles) => {
+const allowRole = (...allowedRoles) => {
   return (req, res, next) => {
-    if (!req.user) {
+    if (!req.user || !req.user.role) {
       return res.status(401).json({
         success: false,
         message: "Authentication required.",
@@ -33,7 +33,7 @@ module.exports = (...allowedRoles) => {
 
     const role = String(req.user.role || "").toLowerCase();
 
-    if (!allowedRoles.includes(role)) {
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: "Access denied. Insufficient permissions.",
@@ -43,3 +43,4 @@ module.exports = (...allowedRoles) => {
     next();
   };
 };
+ module.exports = allowRole;

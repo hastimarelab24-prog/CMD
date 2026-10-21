@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const router = express.Router();
 
 const Lead = require("../models/lead");
-const User = require("../models/User");
+const User = require("../models/TeamUser");
 
 const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
@@ -17,7 +17,7 @@ const {
   deleteLead,
 } = require("../controllers/leadController");
 
-const logActive = require("../until/auditLogger");
+const logActive = require("../utils/auditLogger");
 
 // Require login for all lead routes.
 router.use(authMiddleware);

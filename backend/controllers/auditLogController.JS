@@ -1,6 +1,6 @@
 
 const AuditLog = require("../models/AuditLog");
-const User = require("../models/User");
+const User = require("../models/TeamUser");
 
 exports.getAuditLogs = async (req, res) => {
   try {

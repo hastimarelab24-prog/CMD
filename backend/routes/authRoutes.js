@@ -1,57 +1,10 @@
-// const express = require ('express');
-// const bcrpyt = require ('bcryptjs');
-// const jwt= require('jsonwebtoken');
-// const User = require('../models/User');
-// const router = express.Router();
 
-// // user resigtion POst
-// router.post('/register',async (req,res,next)=>{try{
-//     const {name,email,password} = req.body;
-//     if(!name || !email || !password){
-//         return res.status(400).json({message:"plaese fill in  all details. "})
-//     }
-//     let user = await User.findOne({email});
-//     if(user) return res.status(400).json({message:'this email already registered.'})
-
-//         // password hashing
-//         // const salt = await bcrpyt.genSalt(10);
-//         // const hashPassword = await bcrpyt.hash(password,salt);
-
-//         user = new User({name,email,password});
-//         await user.save();
-//         const token = jwt.sign({id:user._id},process.env.JWT_SECRET,{expiresIn:'1h',});
-//         res.status(201).json({token,user:{id:user._id,name,email}})
-
-// }catch(err){
-//  next(err)
-// }})
-
-// // user login post
-// router.post("/login",async(req,res,next)=>{
-//     try{
-//         const{email,password} = req.body;
-//         if(!email || !password) {
-//             return res.status(400).json({message:'Both email and password are required.'});
-//         }
-//             const user = await User.findOne({email});
-//             if(!user) return res.status(400).json({message:'worng email or password.'})
-//                 // password verification
-//             const isMatch = await user.comparePassword(password);
-//             if(!isMatch) return res.status(400).json({message:'worng email and password'});
-//              const token = jwt.sign ({id: user._id},process.env.JWT_SECRET,{
-//                 expiresIn:'1h',
-//              })
-//              res.json({token,user:{id:user._id,name:user.name,email}});
-//         }catch(err){
-//             next(err)
-//         }
-// })
-// module.exports = router
 
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-
+const bcrypt = require("bcryptjs")
+// const User = require("../models/User");
+const AuthUser = require("../models/AuthUser")
 const router = express.Router();
 
 const createToken = (user) => {
@@ -88,7 +41,7 @@ router.post("/register", async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingUser = await User.findOne({
+    const existingUser = await AuthUser .findOne({
       email: normalizedEmail,
     });
 
@@ -98,13 +51,16 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    // hash password before saving
+    const hashedPassword = await bcrypt.hash(password,12)
     // Public registration must not allow users to assign themselves
     // an administrator role.
-    const user = await User.create({
+    const user = await AuthUser .create({
       name: name.trim(),
       email: normalizedEmail,
-      password,
+      password:hashedPassword,
       role: "employee",
+      isActive:true,
     });
 
     const token = createToken(user);
@@ -148,7 +104,7 @@ router.post("/login", async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const user = await User.findOne({
+    const user = await AuthUser .findOne({
       email: normalizedEmail,
     }).select("+password");
 
@@ -164,7 +120,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = typeof user.comparePassword === "function"? await user.comparePassword(password) : await bcrypt.compare(password,user.password);
 
     if (!isMatch) {
       return res.status(401).json({

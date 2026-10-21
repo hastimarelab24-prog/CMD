@@ -6,7 +6,8 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const Lead = require("../models/lead");
-const User = require("../models/User");
+const AuthUser = require("../models/AuthUser");
+const TeamUser = require("../models/TeamUser");
 
 // All dashboard APIs require authentication
 router.use(authMiddleware);
@@ -62,7 +63,7 @@ router.get("/overview", async (req, res) => {
       ]),
 
       userRole === "administrator" || userRole === "manager"
-        ? User.find({
+        ? TeamUser.find({
             role: "employee",
             isActive: { $ne: false },
           })
@@ -122,7 +123,7 @@ router.get("/profile", async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
 
-    const user = await User.findById(userId)
+    const user = await AuthUser.findById(userId)
       .select("-password")
       .lean();
 
