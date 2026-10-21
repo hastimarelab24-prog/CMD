@@ -1,46 +1,41 @@
-const role = String(req.user?.role || "").toLowerCase();
-const userId = req.user?._id || req.user?.id || req.user?.userId;
 
-if (!userId) {
-  return res.status(401).json({
-    success: false,
-    message: "User ID not found in authentication token.",
-  });
-}
+const mongoose = require("mongoose");
 
-let leadFilter = {};
-
-if (role === "employee") {
-  leadFilter = { assignedEmployee: userId };
-} else if (role === "administrator" || role === "manager") {
-  leadFilter = {};
-} else {
-  return res.status(403).json({
-    success: false,
-    message: "Unauthorized role.",
-  });
-}
-
-const totalLeads = await Lead.countDocuments(leadFilter);
-
-const recentLeads = await Lead.find(leadFilter)
-  .populate("assignedEmployee", "name email role")
-  .sort({ createdAt: -1 })
-  .limit(5)
-  .lean();
-
-const leadStatus = await Lead.aggregate([
-  { $match: leadFilter },
+const authUserSchema = new mongoose.Schema(
   {
-    $group: {
-      _id: "$status",
-      count: { $sum: 1 },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: ["administrator", "manager", "employee"],
+      default: "employee",
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
-  { $sort: { count: -1 } },
-]);
+  {
+    timestamps: true,
+    collection: "users",
+  }
+);
 
-const convertedLeads = await Lead.countDocuments({
-  ...leadFilter,
-  status: "won",
-});
+module.exports =
+  mongoose.models.AuthUser ||
+  mongoose.model("AuthUser", authUserSchema);
