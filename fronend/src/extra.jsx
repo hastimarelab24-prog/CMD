@@ -1,57 +1,34 @@
-const mongoose = require("mongoose");
+exports.getFollowUps = async (req, res) => {
+  try {
+    const filter = {};
 
-const LeadSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    company: { type: String, default: "", trim: true },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    phone: { type: String, default: "", trim: true },
-    source: {
-      type: String,
-      required: true,
-      lowercase: true,
-      enum: [
-        "website",
-        "referral",
-        "cold outreach",
-        "inbound call",
-        "social media",
-      ],
-    },
-    status: {
-      type: String,
-      required: true,
-      enum: [
-        "New",
-        "Contacted",
-        "Qualified",
-        "Proposal Sent",
-        "Nurturing",
-        "Lost",
-        "Won",
-        "new",
-        "contacted",
-        "qualified",
-        "proposal sent",
-        "nurturing",
-        "lost",
-        "won",
-      ],
-      default: "New",
-    },
-    assignedEmployee: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
-  },
-  { timestamps: true },
-);
+    // જો ફ્રન્ટએન્ડથી સ્ટેટસ મોકલ્યું હોય તો ફિલ્ટર કરો
+    if (req.query.status && req.query.status.trim() !== "") {
+      filter.status = new RegExp(`^${req.query.status}$`, "i");
+    }
 
-module.exports = mongoose.models.Lead || mongoose.model("Lead", LeadSchema);
+    const now = new Date();
+
+    if (req.query.view === "upcoming") {
+      filter.status = { $in: ["pending", "Pending"] };
+      filter.dueDate = { $gte: now };
+    } else if (req.query.view === "overdue") {
+      filter.status = { $in: ["pending", "Pending"] };
+      filter.dueDate = { $lt: now };
+    } else if (req.query.view === "completed") {
+      filter.status = { $in: ["completed", "Completed"] };
+    }
+
+    const followUps = await FollowUp.find(filter)
+      .populate("lead", "name company email assignedEmployee")
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email")
+      .sort({ dueDate: 1 })
+      .lean();
+
+    return res.json({ success: true, followUps });
+  } catch (error) {
+    console.error("Get follow-ups error:", error);
+    return res.status(500).json({ success: false, message: "Failed to load follow-ups." });
+  }
+};
