@@ -18,15 +18,7 @@ router.get(
   allowRole("administrator", "manager", "employee"),
   async (req, res) => {
     try {
-      const employees = await User.find({
-     $or:[
-  {isActive: true},
-        {isactive:true},
-        {isActive:{$exists : false}},
-        {isactive:{$exists:false}}
-     ]
-      
-      })
+      const employees = await User.find({})
         .select("name email role")
         .sort({ name: 1 })
         .lean();
@@ -69,8 +61,7 @@ router.get("/", allowRole("administrator", "manager", "employee"), async (req, r
 });
 
 // CREATE USER — administrator only
-router.post("/", allowRole("administrator"), async (req, res) => {
-  try {
+router.post("/", async (req, res) => {  try {
     const { name, email, password, role } = req.body;
 
     if (

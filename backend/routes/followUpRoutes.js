@@ -89,6 +89,8 @@
 // router.delete("/:id", controller.deleteFollowUp);
 
 // module.exports = router;
+
+
 const express = require("express");
 const mongoose = require("mongoose");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -106,25 +108,19 @@ router.get("/assignees", async (req, res) => {
         if (!currentUser || !currentUser.id) {
             return res.status(401).json({ message: "Authentication required." });
         }
-        if (!mongoose.isValidObjectId(currentUser.id)) {
-            return res.status(401).json({ message: "Invalid authenticated user." });
-        }
 
-        let filter;
-        if (currentUser.role === "administrator" || currentUser.role === "admin") {
-            filter = { isActive: { $ne: false } };
-        } else if (currentUser.role === "manager" || currentUser.role === "employee" || currentUser.role === "manger") {
-            filter = { _id: currentUser.id };
-        } else {
-            filter = { _id: currentUser.id }; // Fallback safe filter
-        }
-
-        const users = await User.find(filter)
+        const users = await User.find({
+            $or:[
+                {isactive:true},
+                {isActive:true},
+                {isActive:{$exists:false}},
+            ]
+        })
             .select("_id name email role isActive")
             .sort({ name: 1 })
             .lean();
 
-        return res.status(200).json({ users });
+        return res.status(200).json({ success:true,users, assignees:users });
     } catch (error) {
         console.error("Fetch assignees error:", error);
         return res.status(500).json({ message: "Failed to load team members." });
