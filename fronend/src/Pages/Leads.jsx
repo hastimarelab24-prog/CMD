@@ -27,28 +27,33 @@ export default function Leads() {
   //     setPagination(data.pagination);
   //   } catch (err) { console.error(err); }
   // };
- const loadLeads = async () => {
-  try {
-    const data = await leadService.fetchLeads(filters);
+  const loadLeads = async () => {
+    try {
+      const response = await leadService.fetchLeads(filters);
 
-    console.log("Fetched leads:", data.leads);
-    console.log("Pagination:", data.pagination);
+      console.log("Full API Response Data:", response);
 
-    setLeads(Array.isArray(data.leads) ? data.leads : []);
-    setPagination(
-      data.pagination || {
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
+      let leadsData = [];
+      if (Array.isArray(response)) {
+        leadsData = response;
+      } else if (response && Array.isArray(response.leads)) {
+        leadsData = response.leads;
+      } else if (response && Array.isArray(response.data)) {
+        leadsData = response.data;
       }
-    );
-  } catch (err) {
-    console.error(
-      "Load leads failed:",
-      err.response?.data || err.message
-    );
-  }
-};
+
+      setLeads(leadsData);
+      setPagination(
+        response?.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: leadsData.length,
+        },
+      );
+    } catch (err) {
+      console.error("Load leads failed:", err.response?.data || err.message);
+    }
+  };
   useEffect(() => {
     loadLeads();
   }, [filters]);

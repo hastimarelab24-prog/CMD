@@ -1,32 +1,57 @@
-module.exports = (...allowedRoles) => {
-  const normalizedRoles = allowedRoles.map((role) =>
-    String(role).trim().toLowerCase()
-  );
+const mongoose = require("mongoose");
 
-  return (req, res, next) => {
-    if (!req.user || !req.user.role) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required. Please login again.",
-      });
-    }
+const LeadSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    company: { type: String, default: "", trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    phone: { type: String, default: "", trim: true },
+    source: {
+      type: String,
+      required: true,
+      lowercase: true,
+      enum: [
+        "website",
+        "referral",
+        "cold outreach",
+        "inbound call",
+        "social media",
+      ],
+    },
+    status: {
+      type: String,
+      required: true,
+      enum: [
+        "New",
+        "Contacted",
+        "Qualified",
+        "Proposal Sent",
+        "Nurturing",
+        "Lost",
+        "Won",
+        "new",
+        "contacted",
+        "qualified",
+        "proposal sent",
+        "nurturing",
+        "lost",
+        "won",
+      ],
+      default: "New",
+    },
+    assignedEmployee: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+  },
+  { timestamps: true },
+);
 
-    const userRole = String(req.user.role).trim().toLowerCase();
-
-    if (!normalizedRoles.includes(userRole)) {
-      console.log("[ROLE DENIED]", {
-        userId: req.user.id,
-        actualRole: userRole,
-        allowedRoles: normalizedRoles,
-        path: req.originalUrl,
-      });
-
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Insufficient permissions.",
-      });
-    }
-
-    return next();
-  };
-};
+module.exports = mongoose.models.Lead || mongoose.model("Lead", LeadSchema);
