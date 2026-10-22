@@ -1,4 +1,3 @@
-
 const express = require("express");
 const mongoose = require("mongoose");
 const User = require("../models/TeamUser");
@@ -9,18 +8,24 @@ const logAction = require("../utils/auditLogger");
 const router = express.Router();
 
 const validRoles = ["administrator", "manager", "employee"];
+
 // Apply authentication to all routes.
 router.use(authMiddleware);
 
 // Employee dropdown for authorized lead-creation roles.
 router.get(
   "/employees",
-  allowRole("administrator", "manager","employee"),
+  allowRole("administrator", "manager", "employee"),
   async (req, res) => {
     try {
       const employees = await User.find({
-        role: "employee",
-        isActive: true,
+     $or:[
+  {isActive: true},
+        {isactive:true},
+        {isActive:{$exists : false}},
+        {isactive:{$exists:false}}
+     ]
+      
       })
         .select("name email role")
         .sort({ name: 1 })
@@ -29,10 +34,10 @@ router.get(
       return res.status(200).json({
         success: true,
         employees,
+        users:employees,
       });
     } catch (error) {
       console.error("Employee list error:", error);
-
       return res.status(500).json({
         success: false,
         message: "Unable to load employees.",
@@ -41,29 +46,30 @@ router.get(
   }
 );
 
-// Keep the remaining user-management routes administrator-only.
-router.use(allowRole("administrator"));
-
-// GET ALL USERS — administrator only
-router.get("/", async (req, res) => {
+// GET ALL USERS — administrator, manager, and employee
+router.get("/", allowRole("administrator", "manager", "employee"), async (req, res) => {
   try {
     const users = await User.find()
       .select("-password")
       .sort({ createdAt: -1 })
       .lean();
 
-    return res.status(200).json({ users });
+    return res.status(200).json({
+      success: true,
+      users,
+      employees:users
+    });
   } catch (error) {
-    console.error("Fetch users error:", error);
-
+    console.error("Load users error:", error);
     return res.status(500).json({
-      message: "Failed to fetch users.",
+      success: false,
+      message: "Failed to load users",
     });
   }
 });
 
 // CREATE USER — administrator only
-router.post("/", async (req, res) => {
+router.post("/", allowRole("administrator"), async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -109,6 +115,7 @@ router.post("/", async (req, res) => {
       email: normalizedEmail,
       password,
       role,
+      isActive:true,
     });
 
     try {
@@ -155,7 +162,7 @@ router.post("/", async (req, res) => {
 });
 
 // UPDATE USER ROLE — administrator only
-router.patch("/:id/role", async (req, res) => {
+router.patch("/:id/role", allowRole("administrator"), async (req, res) => {
   try {
     const { id } = req.params;
     const { role } = req.body;

@@ -106,17 +106,17 @@ const followUpSchema = new mongoose.Schema(
     },
     title: {
       type: String,
-      required: true,
+      required: [true,'Activity title is required.'],
       trim: true,
     },
     type: {
       type: String,
-      enum: ["call", "email", "meeting", "task", "other"],
-      default: "call",
+      enum: ["call", "email", "meeting", "task", "Follow-up"],
+      default: "Follow-up",
     },
     dueDate: {
       type: Date,
-      required: true,
+      required: [true,'Due data is required'],
       index: true,
     },
     priority: {
@@ -145,11 +145,17 @@ const followUpSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index:true,
     },
     completedAt: {
       type: Date,
       default: null,
     },
+    notes:{
+      type:String,
+      default:"",
+      trim:true,
+    }
   },
   { timestamps: true }
 );
@@ -157,4 +163,4 @@ const followUpSchema = new mongoose.Schema(
 followUpSchema.index({ status: 1, dueDate: 1, assignedTo: 1 });
 
 module.exports = mongoose.models.FollowUp ||
-  mongoose.model("FollowUp", followUpSchema);
+  mongoose.model("FollowUp", followUpSchema,"followups");

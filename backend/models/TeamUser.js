@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const authConnection = require("../config/authdb");
+
 
 const teamUserSchema = new mongoose.Schema(
   {
@@ -15,7 +15,7 @@ const teamUserSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["administrator", "manager", "employee"],
-      default: "employee",
+      default:"employee",
     },
     isActive: { type: Boolean, default: true },
   },
@@ -23,5 +23,5 @@ const teamUserSchema = new mongoose.Schema(
 );
 
 module.exports =
-  authConnection.models.User ||
-  authConnection.model("User", teamUserSchema);
+  mongoose.models.User ||
+  mongoose.model("User", teamUserSchema);

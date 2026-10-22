@@ -9,6 +9,7 @@ const User = require("../models/TeamUser");
 const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
 
+// Import controller functions correctly
 const {
   getLeads,
   createLead,
@@ -22,18 +23,16 @@ const logActive = require("../utils/auditLogger");
 // Require login for all lead routes.
 router.use(authMiddleware);
 
-// View and create leads.
-// Controller must also enforce record-level permissions.
+// View and create leads
 router.route("/").get(getLeads).post(createLead);
 
-// Update and delete a lead.
-// Add ownership/role checks inside these controllers.
+// Update and delete a lead
 router.route("/:id").put(updatedLead).delete(deleteLead);
 
-// Change lead status.
+// Change lead status
 router.patch("/:id/status", transitionStatus);
 
-// Assign a lead to an active employee.
+// Assign a lead to an active employee
 router.patch(
   "/:id/assign",
   allowRoles("administrator", "manager"),
@@ -53,8 +52,11 @@ router.patch(
 
       const employee = await User.findOne({
         _id: employeeId,
-        role: "employee",
-        isActive: true,
+        $or: [
+          { isActive: true },
+          { iactive: true },
+          { isActive: { $exists: false } }
+        ]
       });
 
       if (!employee) {
@@ -76,25 +78,28 @@ router.patch(
       lead.assignedEmployee = employee._id;
 
       await lead.save();
-      console.log("lead saved successfully",lead._id.toString());
       
       try {
-        await logActive(
-          req.user.id || req.user._id,
-          "LEAD_ASSIGNED",
-          "Lead",
-          lead._id.toString(),
-          {
-            previousEmployee,
-            newEmployee: employee._id.toString(),
-          },
-        );
+        if (logActive) {
+          await logActive(
+            req.user.id || req.user._id,
+            "LEAD_ASSIGNED",
+            "Lead",
+            lead._id.toString(),
+            {
+              previousEmployee,
+              newEmployee: employee._id.toString(),
+            }
+          );
+        }
       } catch (auditError) {
-        return res.status(200).json({
-          message: "Lead assigned successfully.",
-          lead,
-        });
+        console.error("Audit log error:", auditError);
       }
+
+      return res.status(200).json({
+        message: "Lead assigned successfully.",
+        lead,
+      });
     } catch (error) {
       console.error("Assign lead error:", error);
 
@@ -103,7 +108,7 @@ router.patch(
         error: error.message,
       });
     }
-  },
+  }
 );
 
 module.exports = router;

@@ -1,9 +1,4 @@
-
 module.exports = (...allowedRoles) => {
-  const normalizedRoles = allowedRoles.map((role) =>
-    String(role).trim().toLowerCase()
-  );
-
   return (req, res, next) => {
     if (!req.user || !req.user.role) {
       return res.status(401).json({
@@ -12,22 +7,21 @@ module.exports = (...allowedRoles) => {
       });
     }
 
-    const userRole = String(req.user.role).trim().toLowerCase();
+    const userRole = req.user.role
+      .toLowerCase()
+      .trim();
 
-    if (!normalizedRoles.includes(userRole)) {
-      console.log("Role access denied", {
-        userId: req.user.id,
-        actualRole: userRole,
-        allowedRoles: normalizedRoles,
-        path: req.originalUrl,
-      });
+    const permittedRoles = allowedRoles.map((role) =>
+      role.toLowerCase().trim()
+    );
 
+    if (!permittedRoles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: "Access denied. Insufficient permissions.",
       });
     }
 
-    return next();
+    next();
   };
 };

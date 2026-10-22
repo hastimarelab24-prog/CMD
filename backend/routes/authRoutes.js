@@ -20,7 +20,7 @@ const createToken = (user) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "8h" },
+    // { expiresIn: "8h" },
   );
 };
 const formatUser = (user) => ({
