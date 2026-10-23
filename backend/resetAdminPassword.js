@@ -1,7 +1,10 @@
 
+require("dotenv").config();
+
 const readline = require("readline");
 const bcrypt = require("bcryptjs");
 const AuthUser = require("./models/AuthUser");
+const authConnection = require("./config/authdb");
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -14,24 +17,26 @@ function ask(question) {
 
 async function resetPassword() {
   try {
-    await AuthUser.db.asPromise();
+    await authConnection.asPromise();
 
-    console.log("Connected database:", AuthUser.db.name);
+    console.log("Connected database:", authConnection.name);
 
-    if (AuthUser.db.name !== "crm_auth_db") {
-      throw new Error(
-        "Wrong database. Expected crm_auth_db. No changes made."
-      );
+    if (authConnection.name !== "crm_auth_db") {
+      throw new Error("Wrong database. No changes made.");
     }
 
     const email = (await ask("Admin email: "))
       .trim()
       .toLowerCase();
 
-    const password = await ask("Enter new password (8+ characters): ");
+    const password = await ask(
+      "Enter new password (8+ characters): "
+    );
 
     if (!email || password.length < 8) {
-      throw new Error("Enter a valid email and a password of at least 8 characters.");
+      throw new Error(
+        "Enter a valid email and password of at least 8 characters."
+      );
     }
 
     const user = await AuthUser.findOne({ email });
@@ -42,7 +47,7 @@ async function resetPassword() {
 
     if (user.role !== "administrator") {
       throw new Error(
-        "This account is not an administrator. Password was not changed."
+        "This account is not an administrator. No changes made."
       );
     }
 
@@ -57,7 +62,7 @@ async function resetPassword() {
     process.exitCode = 1;
   } finally {
     rl.close();
-    await AuthUser.db.close();
+    await authConnection.close();
   }
 }
 

@@ -1,25 +1,25 @@
 
 const AuditLog = require("../models/AuditLog");
-
-async function auditLogger(
-  actor,
+const logAction=async(
+  req,
   action,
   entity,
-  entityId = "",
-  details = {}
-) {
+  entityId = null,
+  details = ''
+)=> {
   try {
     return await AuditLog.create({
-      actor: actor || null,
+      user: req.user.id,
       action,
       entity,
-      entityId: entityId ? String(entityId) : "",
+      entityId,
       details,
+      ipAddress :req.ip || req.headers['X-forwaeded-for'] || '',
     });
   } catch (error) {
     console.error("Audit log creation failed:", error.message);
-    return null;
+    // return null;
   }
 }
 
-module.exports = auditLogger;
+module.exports = logAction;

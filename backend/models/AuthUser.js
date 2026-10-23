@@ -23,6 +23,4 @@ const authUserSchema = new mongoose.Schema(
   { timestamps: true, collection: "users" }
 );
 
-module.exports =
-  authConnection.models.AuthUser ||
-  authConnection.model("AuthUser", authUserSchema);
+module.exports =  authConnection.model.AuthUser||authConnection.model("AuthUser", authUserSchema,"users");
