@@ -1,64 +1,302 @@
-// import React, { useContext, useEffect, useState } from 'react'
-// import { AuthContext } from '../context/AuthContext'
-// import axios from 'axios';
-// const Dashboard = () => {
-//     const {token,logout,user,setUser}= useContext(AuthContext);
-//     const [ stats,setStats] =useState(null);
-//     const [loading,setLoading] = useState(true);
-//     useEffect(()=>{
-//         const fetchDashboardData = async()=>{try{
-//             const config = {headers:{Authorization : `Bearer ${token}`}};
-//             const profileRes = await axios.get('http://localhost:5000/api/dashboard/profile',config);
-//             setUser(profileRes.data);
+// import React, { useState, useEffect, useCallback } from 'react';
+// import {
+//   BarChart,
+//   Bar,
+//   PieChart,
+//   Pie,
+//   Cell,
+//   XAxis,
+//   YAxis,
+//   CartesianGrid,
+//   Tooltip,
+//   Legend,
+//   ResponsiveContainer
+// } from 'recharts';
+// import {
+//   Users,
+//   TrendingUp,
+//   DollarSign,
+//   Download,
+//   Calendar,
+//   AlertCircle,
+//   RefreshCw,
+//   Phone,
+//   Mail,
+//   Video,
+//   Layers,
+//   Inbox
+// } from 'lucide-react';
 
-//             const statsRes = await axios.get("http://localhost:5000/api/dashboard/stats",config);
-//             setStats(statsRes.data)
-//         }catch(err){
-//             console.error('data fetch error',err);
-//             logout()
-            
-//         } finally{
-//             setLoading(false)
-//         }}
-//         fetchDashboardData()
-//     },[token]);
+// const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280'];
+// const API_BASE_URL = 'http://localhost:5000';
 
-//     if(loading)return <div>live data loading...</div>
+// export default function Dashboard() {
+//   const [startDate, setStartDate] = useState('');
+//   const [endDate, setEndDate] = useState('');
+//   const [data, setData] = useState(null);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+//   const [exporting, setExporting] = useState(false);
+
+//   const fetchDashboardData = useCallback(async () => {
+//     setLoading(true);
+//     setError(null);
+//     try {
+//       const queryParams = new URLSearchParams();
+//       if (startDate) queryParams.append('startDate', startDate);
+//       if (endDate) queryParams.append('endDate', endDate);
+
+//       const response = await fetch(`${API_BASE_URL}/api/dashboard?${queryParams.toString()}`);
+      
+//       const contentType = response.headers.get('content-type');
+//       if (!contentType || !contentType.includes('application/json')) {
+//         throw new Error('Server returned non-JSON response. Verify backend is running.');
+//       }
+
+//       const result = await response.json();
+//       if (!response.ok) throw new Error(result.message || 'Failed to fetch dashboard metrics');
+
+//       setData(result.data);
+//     } catch (err) {
+//       setError(err.message || 'Something went wrong while loading dashboard data.');
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [startDate, endDate]);
+
+//   useEffect(() => {
+//     fetchDashboardData();
+//   }, [fetchDashboardData]);
+
+//   const handleExportCSV = async () => {
+//     setExporting(true);
+//     try {
+//       const queryParams = new URLSearchParams();
+//       if (startDate) queryParams.append('startDate', startDate);
+//       if (endDate) queryParams.append('endDate', endDate);
+
+//       const response = await fetch(`${API_BASE_URL}/api/dashboard/export-csv?${queryParams.toString()}`);
+//       if (!response.ok) throw new Error('Failed to download CSV');
+
+//       const blob = await response.blob();
+//       const url = window.URL.createObjectURL(blob);
+//       const a = document.createElement('a');
+//       a.href = url;
+//       a.download = `leads_export_${new Date().toISOString().split('T')[0]}.csv`;
+//       document.body.appendChild(a);
+//       a.click();
+//       a.remove();
+//       window.URL.revokeObjectURL(url);
+//     } catch (err) {
+//       alert('CSV Export failed: ' + err.message);
+//     } finally {
+//       setExporting(false);
+//     }
+//   };
+
+//   const clearFilters = () => {
+//     setStartDate('');
+//     setEndDate('');
+//   };
+
+//   const isDataEmpty =
+//     !data || (data.summary.totalLeads === 0 && data.employeeActivities.length === 0);
+
 //   return (
-//     <div>
-//         <aside>
-//             <div>
-//                 <h2> Menu bar</h2>
-//                 <ul>
-//                     <li> Pages</li>
-//                     <li>My Profile</li>
-//                     <li>Report Data</li>
-//                 </ul>
-//             </div>
-//                     <button>logout</button>
-//         </aside>
+//     <div className="min-h-screen bg-gray-50 p-6 space-y-6">
+//       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+//         <div>
+//           <h1 className="text-2xl font-bold text-gray-900">Reporting & Analytics</h1>
+//           <p className="text-sm text-gray-500">Track lead performance, sources, and employee activity</p>
+//         </div>
 
-//         <main>
-//             <header>
-//                 <h2>user{user?.name}!</h2>
-//                 <p>Register Email <strong>{user?.email}</strong></p>
-//             </header>
+//         <div className="flex flex-wrap items-center gap-3">
+//           <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+//             <Calendar className="w-4 h-4 text-gray-500" />
+//             <input
+//               type="date"
+//               value={startDate}
+//               onChange={(e) => setStartDate(e.target.value)}
+//               className="bg-transparent text-xs text-gray-700 outline-none"
+//             />
+//             <span className="text-gray-400 text-xs">to</span>
+//             <input
+//               type="date"
+//               value={endDate}
+//               onChange={(e) => setEndDate(e.target.value)}
+//               className="bg-transparent text-xs text-gray-700 outline-none"
+//             />
+//           </div>
 
-//             <div>
-//                 <div>
-//                     <h4>Visites</h4>
-//                     <p>{stats?.totalViews ||0}</p>
-//                 </div>
-//                 <div><h4>Active Project</h4>
-//                     <p>{stats?.activeProjects || 0}</p>
-//                 </div>
+//           {(startDate || endDate) && (
+//             <button onClick={clearFilters} className="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1">
+//               Clear
+//             </button>
+//           )}
+
+//           <button
+//             onClick={handleExportCSV}
+//             disabled={exporting || isDataEmpty}
+//             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+//           >
+//             <Download className="w-4 h-4" />
+//             {exporting ? 'Exporting...' : 'Export CSV'}
+//           </button>
+//         </div>
+//       </div>
+
+//       {loading && (
+//         <div className="flex flex-col items-center justify-center h-80 bg-white rounded-xl border border-gray-100 shadow-sm">
+//           <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-3" />
+//           <p className="text-sm text-gray-500 font-medium">Fetching real-time metrics...</p>
+//         </div>
+//       )}
+
+//       {!loading && error && (
+//         <div className="flex flex-col items-center justify-center h-80 bg-white rounded-xl border border-red-100 p-6 text-center shadow-sm">
+//           <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+//           <h3 className="text-base font-semibold text-gray-900">Failed to load reporting data</h3>
+//           <p className="text-sm text-gray-500 mt-1 max-w-md">{error}</p>
+//           <button
+//             onClick={fetchDashboardData}
+//             className="mt-4 flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold px-4 py-2 rounded-lg"
+//           >
+//             <RefreshCw className="w-3.5 h-3.5" /> Retry
+//           </button>
+//         </div>
+//       )}
+
+//       {!loading && !error && isDataEmpty && (
+//         <div className="flex flex-col items-center justify-center h-80 bg-white rounded-xl border border-gray-100 p-6 text-center shadow-sm">
+//           <Inbox className="w-12 h-12 text-gray-300 mb-3" />
+//           <h3 className="text-base font-semibold text-gray-800">No lead data available</h3>
+//           <p className="text-sm text-gray-500 mt-1 max-w-md">There are no records matching the selected date range.</p>
+//         </div>
+//       )}
+
+//       {!loading && !error && !isDataEmpty && (
+//         <div className="space-y-6">
+//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+//             <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+//               <div>
+//                 <p className="text-xs font-medium text-gray-500 uppercase">Total Leads</p>
+//                 <h2 className="text-2xl font-bold text-gray-900 mt-1">{data.summary.totalLeads}</h2>
+//               </div>
+//               <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Users className="w-6 h-6" /></div>
 //             </div>
-//         </main>
+//             <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+//               <div>
+//                 <p className="text-xs font-medium text-gray-500 uppercase">Conversion Rate</p>
+//                 <h2 className="text-2xl font-bold text-gray-900 mt-1">{data.summary.conversionRate}%</h2>
+//               </div>
+//               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><TrendingUp className="w-6 h-6" /></div>
+//             </div>
+//             <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+//               <div>
+//                 <p className="text-xs font-medium text-gray-500 uppercase">Won Deals</p>
+//                 <h2 className="text-2xl font-bold text-gray-900 mt-1">{data.summary.wonLeads}</h2>
+//               </div>
+//               <div className="p-3 bg-purple-50 text-purple-600 rounded-lg"><Layers className="w-6 h-6" /></div>
+//             </div>
+//             <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+//               <div>
+//                 <p className="text-xs font-medium text-gray-500 uppercase">Total Closed Value</p>
+//                 <h2 className="text-2xl font-bold text-gray-900 mt-1">${data.summary.totalRevenue.toLocaleString()}</h2>
+//               </div>
+//               <div className="p-3 bg-amber-50 text-amber-600 rounded-lg"><DollarSign className="w-6 h-6" /></div>
+//             </div>
+//           </div>
+
+//           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+//             <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+//               <h3 className="text-base font-semibold text-gray-900 mb-4">Leads by Status</h3>
+//               <div className="h-64">
+//                 <ResponsiveContainer width="100%" height="100%">
+//                   <BarChart data={data.leadsByStatus} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+//                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+//                     <XAxis dataKey="status" tick={{ fontSize: 12, fill: '#6B7280' }} />
+//                     <YAxis tick={{ fontSize: 12, fill: '#6B7280' }} allowDecimals={false} />
+//                     <Tooltip cursor={{ fill: '#F9FAFB' }} />
+//                     <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+//                   </BarChart>
+//                 </ResponsiveContainer>
+//               </div>
+//             </div>
+
+//             <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+//               <h3 className="text-base font-semibold text-gray-900 mb-4">Lead Sources Distribution</h3>
+//               <div className="h-64">
+//                 <ResponsiveContainer width="100%" height="100%">
+//                   <PieChart>
+//                     <Pie
+//                       data={data.leadSources}
+//                       dataKey="count"
+//                       nameKey="source"
+//                       cx="50%"
+//                       cy="50%"
+//                       outerRadius={80}
+//                       innerRadius={45}
+//                       paddingAngle={4}
+//                       label={({ source, percent }) => `${source} (${(percent * 100).toFixed(0)}%)`}
+//                     >
+//                       {data.leadSources.map((_, index) => (
+//                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+//                       ))}
+//                     </Pie>
+//                     <Tooltip />
+//                     <Legend />
+//                   </PieChart>
+//                 </ResponsiveContainer>
+//               </div>
+//             </div>
+//           </div>
+
+//           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+//             <div className="p-5 border-b border-gray-100">
+//               <h3 className="text-base font-semibold text-gray-900">Employee Activity Summary</h3>
+//             </div>
+//             <div className="overflow-x-auto">
+//               <table className="w-full text-left border-collapse text-sm">
+//                 <thead>
+//                   <tr className="bg-gray-50 text-gray-500 font-medium text-xs uppercase">
+//                     <th className="py-3 px-5">Employee</th>
+//                     <th className="py-3 px-5 text-center">Calls</th>
+//                     <th className="py-3 px-5 text-center">Emails</th>
+//                     <th className="py-3 px-5 text-center">Meetings</th>
+//                     <th className="py-3 px-5 text-right">Total Activities</th>
+//                   </tr>
+//                 </thead>
+//                 <tbody className="divide-y divide-gray-100 text-gray-700">
+//                   {data.employeeActivities.map((emp) => (
+//                     <tr key={emp._id} className="hover:bg-gray-50">
+//                       <td className="py-3.5 px-5">
+//                         <div className="font-semibold text-gray-900">{emp.name}</div>
+//                         <div className="text-xs text-gray-400">{emp.email}</div>
+//                       </td>
+//                       <td className="py-3.5 px-5 text-center"><Phone className="w-3.5 h-3.5 inline text-blue-500" /> {emp.calls}</td>
+//                       <td className="py-3.5 px-5 text-center"><Mail className="w-3.5 h-3.5 inline text-emerald-500" /> {emp.emails}</td>
+//                       <td className="py-3.5 px-5 text-center"><Video className="w-3.5 h-3.5 inline text-purple-500" /> {emp.meetings}</td>
+//                       <td className="py-3.5 px-5 text-right font-bold text-gray-900">{emp.totalActivities}</td>
+//                     </tr>
+//                   ))}
+//                   {data.employeeActivities.length === 0 && (
+//                     <tr>
+//                       <td colSpan="5" className="py-6 text-center text-gray-400">No team activity recorded.</td>
+//                     </tr>
+//                   )}
+//                 </tbody>
+//               </table>
+//             </div>
+//           </div>
+//         </div>
+//       )}
 //     </div>
-//   )
+//   );
 // }
 
-// export default Dashboard
+
+
+
 
 
 import React, { useContext, useEffect, useState } from "react";
